@@ -1,0 +1,3485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunara Quill Novel Generator</title>
+
+    <style>
+        :root {
+            --bg: #f4f1f8;
+            --card: #ffffff;
+            --text: #2e2940;
+            --muted: #918aa3;
+            --line: #e8e1ef;
+            --primary: #7956b9;
+            --primary-dark: #583d8e;
+            --soft: #eee7fa;
+            --danger: #cc5361;
+            --sidebar: 245px;
+            --font-size: 19px;
+            --shadow: 0 15px 40px rgba(73, 53, 104, .12);
+        }
+
+        body.dark {
+            --bg: #17151f;
+            --card: #24202d;
+            --text: #f8f4ff;
+            --muted: #b7aec4;
+            --line: #3a3346;
+            --soft: #382d49;
+            --shadow: 0 15px 40px rgba(0, 0, 0, .3);
+        }
+
+        body.sepia {
+            --bg: #f3ead9;
+            --card: #fff9ed;
+            --text: #4a3827;
+            --muted: #927b63;
+            --line: #e2d2b9;
+            --soft: #f3dfc3;
+            --primary: #96602f;
+            --primary-dark: #70451f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            transition: .25s;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .sidebar {
+            width: var(--sidebar);
+            min-height: 100vh;
+            position: fixed;
+            inset: 0 auto 0 0;
+            padding: 25px 16px;
+            background: var(--card);
+            border-right: 1px solid var(--line);
+            z-index: 5;
+        }
+
+        .logo {
+            margin: 0 10px 36px;
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        .logo-icon {
+            display: inline-grid;
+            place-items: center;
+            width: 37px;
+            height: 37px;
+            margin-right: 7px;
+            border-radius: 12px;
+            color: #fff;
+            background: linear-gradient(135deg, #7956b9, #b47be8);
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .nav {
+            width: 100%;
+            display: block;
+            padding: 13px;
+            margin: 4px 0;
+            border: 0;
+            border-radius: 11px;
+            color: var(--muted);
+            background: transparent;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .nav:hover,
+        .nav.active {
+            color: var(--primary);
+            background: var(--soft);
+        }
+
+        .sidebar-bottom {
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 20px;
+        }
+
+        .theme-button {
+            width: 100%;
+            padding: 12px;
+            border: 0;
+            border-radius: 10px;
+            color: var(--muted);
+            background: var(--bg);
+        }
+
+        .main {
+            width: calc(100% - var(--sidebar));
+            margin-left: var(--sidebar);
+            padding: 25px 32px 55px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .welcome h1 {
+            margin: 0 0 6px;
+            font-size: 28px;
+        }
+
+        .welcome p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            color: var(--text);
+            background: var(--card);
+            text-align: left;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            color: #fff;
+            background: linear-gradient(135deg, #ff9879, #dd6397);
+            font-weight: bold;
+        }
+
+        .profile-button small {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        /* Moonlit dashboard */
+
+        .noble-dashboard {
+            overflow: hidden;
+            padding: 34px;
+            border-radius: 30px;
+            color: #fff;
+            background:
+                radial-gradient(circle at 85% 12%, #ffffff2e 0 2px, transparent 3px),
+                radial-gradient(circle at 62% 30%, #ffffff25 0 1px, transparent 2px),
+                radial-gradient(circle at 12% 44%, #ffffff25 0 1px, transparent 2px),
+                linear-gradient(135deg, #211b42, #684b92);
+            position: relative;
+            box-shadow: 0 25px 60px rgba(52, 34, 86, .25);
+        }
+
+        .noble-dashboard:after {
+            content: "";
+            width: 330px;
+            height: 330px;
+            position: absolute;
+            top: -120px;
+            right: -80px;
+            border-radius: 50%;
+            background: #ffffff12;
+            box-shadow: -45px 45px 0 #ffffff08;
+        }
+
+        .noble-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-kicker {
+            margin: 0 0 10px;
+            color: #e4d6ff;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .dashboard-title {
+            max-width: 700px;
+            margin: 0;
+            font: clamp(33px, 5vw, 58px)/1.03 Georgia, serif;
+        }
+
+        .dashboard-description {
+            max-width: 590px;
+            margin: 16px 0 0;
+            color: #d8d0e7;
+            line-height: 1.7;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.45fr .8fr;
+            gap: 21px;
+            margin-top: 33px;
+        }
+
+        .current-book {
+            display: grid;
+            grid-template-columns: 165px 1fr;
+            gap: 23px;
+            align-items: center;
+            padding: 23px;
+            border: 1px solid #ffffff24;
+            border-radius: 21px;
+            background: #ffffff12;
+            backdrop-filter: blur(12px);
+        }
+
+        .book-cover {
+            width: 165px;
+            height: 225px;
+            display: flex;
+            align-items: flex-end;
+            padding: 19px;
+            border-radius: 8px 15px 15px 8px;
+            color: #fff;
+            background: linear-gradient(145deg, #d39a5a, #693d79);
+            box-shadow: 11px 15px 0 #ffffff12, 18px 25px 30px #0003;
+            font: 23px Georgia, serif;
+            line-height: 1.2;
+        }
+
+        .book-status {
+            display: inline-block;
+            padding: 6px 10px;
+            border: 1px solid #ffffff2b;
+            border-radius: 30px;
+            color: #eee4ff;
+            background: #ffffff12;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .current-book h2 {
+            margin: 11px 0 8px;
+            font: 30px Georgia, serif;
+        }
+
+        .current-book p {
+            color: #d7d0e5;
+            line-height: 1.6;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            overflow: hidden;
+            border-radius: 20px;
+            background: #ffffff26;
+        }
+
+        .progress-fill {
+            width: 20%;
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(90deg, #f2c673, #f19cae);
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 7px;
+            color: #cdc4dd;
+            font-size: 12px;
+        }
+
+        .dashboard-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .noble-primary,
+        .noble-secondary {
+            padding: 11px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .noble-primary {
+            border: 0;
+            color: #402c50;
+            background: #f4ca76;
+        }
+
+        .noble-secondary {
+            border: 1px solid #ffffff33;
+            color: #fff;
+            background: #ffffff12;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            gap: 12px;
+        }
+
+        .dashboard-stat {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 17px;
+            border: 1px solid #ffffff24;
+            border-radius: 16px;
+            background: #ffffff12;
+        }
+
+        .dashboard-stat-icon {
+            width: 43px;
+            height: 43px;
+            display: grid;
+            place-items: center;
+            border-radius: 13px;
+            color: #462e4f;
+            background: #f4ca76;
+            font-size: 20px;
+        }
+
+        .dashboard-stat strong {
+            display: block;
+            font-size: 22px;
+        }
+
+        .dashboard-stat span {
+            color: #cdc4dd;
+            font-size: 12px;
+        }
+
+        .noble-lower {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 21px;
+            margin-top: 21px;
+        }
+
+        .noble-panel {
+            padding: 21px;
+            border: 1px solid #ffffff24;
+            border-radius: 19px;
+            background: #ffffff12;
+        }
+
+        .noble-panel h3 {
+            margin: 0 0 14px;
+            font: 21px Georgia, serif;
+        }
+
+        .noble-quote {
+            margin: 0;
+            color: #ede6fa;
+            font: italic 20px/1.55 Georgia, serif;
+        }
+
+        .bookshelf {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 115px;
+            border-bottom: 8px solid #b77c4e;
+        }
+
+        .shelf-book {
+            width: 29px;
+            padding: 5px 3px;
+            color: white;
+            writing-mode: vertical-rl;
+            text-align: center;
+            font: 10px Georgia, serif;
+            border-radius: 4px 6px 2px 2px;
+        }
+
+        .shelf-book:nth-child(1) {
+            height: 98px;
+            background: #bd6266
+        }
+
+        .shelf-book:nth-child(2) {
+            height: 78px;
+            background: #5d70ac
+        }
+
+        .shelf-book:nth-child(3) {
+            height: 110px;
+            background: #b48a4f
+        }
+
+        .shelf-book:nth-child(4) {
+            height: 89px;
+            background: #875fa4
+        }
+
+        .shelf-book:nth-child(5) {
+            height: 101px;
+            background: #548f7b
+        }
+
+        /* General content */
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .card {
+            padding: 22px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            box-shadow: var(--shadow);
+        }
+
+        .form-card {
+            max-width: 850px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .section-title h2 {
+            margin: 0;
+        }
+
+        .small-text {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin: 16px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select,
+        #languageSelect,
+        #fontSelect {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            color: var(--text);
+            background: var(--card);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .primary-button,
+        .secondary-button,
+        .outline-button,
+        .delete-button {
+            padding: 10px 14px;
+            border-radius: 9px;
+            font-weight: bold;
+        }
+
+        .primary-button {
+            border: 0;
+            color: #fff;
+            background: var(--primary);
+        }
+
+        .secondary-button {
+            border: 0;
+            color: var(--primary);
+            background: var(--soft);
+        }
+
+        .outline-button {
+            color: var(--text);
+            background: transparent;
+            border: 1px solid var(--line);
+        }
+
+        .delete-button {
+            width: 100%;
+            margin-top: 10px;
+            color: var(--danger);
+            background: transparent;
+            border: 1px solid #e1a5a5;
+            font-size: 12px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .novel-card {
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .novel-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .novel-cover {
+            height: 100px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            color: #fff;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #ed9174, #d35f92);
+            font: 18px Georgia, serif;
+            text-align: center;
+        }
+
+        .novel-card h3 {
+            overflow: hidden;
+            margin: 0 0 5px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .novel-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .reader-layout {
+            display: grid;
+            grid-template-columns: 1fr 255px;
+            gap: 20px;
+        }
+
+        .reader-content {
+            min-height: 520px;
+            padding: 35px 40px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            box-shadow: var(--shadow);
+        }
+
+        .reader-content h2 {
+            margin: 0;
+            font: 30px Georgia, serif;
+        }
+
+        .reader-article {
+            margin-top: 27px;
+            font: var(--font-size)/1.9 Georgia, serif;
+        }
+
+        .reader-article p {
+            margin: 0 0 24px;
+        }
+
+        .reader-sidebar {
+            height: max-content;
+            padding: 18px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 17px;
+        }
+
+        .chapter-button {
+            width: 100%;
+            display: block;
+            padding: 10px;
+            margin: 4px 0;
+            border: 0;
+            border-radius: 8px;
+            color: var(--muted);
+            background: transparent;
+            text-align: left;
+        }
+
+        .chapter-button:hover,
+        .chapter-button.active {
+            color: var(--primary);
+            background: var(--soft);
+        }
+
+        .reader-box {
+            padding: 14px;
+            margin-top: 18px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .note-input {
+            width: 100%;
+            min-height: 85px;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: var(--text);
+            background: var(--card);
+            resize: vertical;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #0009;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: auto;
+            padding: 25px;
+            background: var(--card);
+            border-radius: 16px;
+        }
+
+        .modal-box h2 {
+            margin-top: 0;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .toast {
+            display: none;
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 30;
+            padding: 13px 17px;
+            border-radius: 9px;
+            color: #fff;
+            background: #222534;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        @media(max-width:950px) {
+
+            .dashboard-grid,
+            .reader-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .reader-sidebar {
+                order: -1;
+            }
+        }
+
+        @media(max-width:700px) {
+            :root {
+                --sidebar: 0px;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                width: 100%;
+                margin-left: 0;
+                padding: 16px 12px 40px;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .current-book {
+                grid-template-columns: 1fr;
+            }
+
+            .book-cover {
+                width: 100%;
+                height: 175px;
+            }
+
+            .noble-lower,
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            .reader-content {
+                padding: 25px 20px;
+            }
+
+            .reader-article {
+                font-size: 17px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <span class="logo-icon">✦</span>
+            Lunara<span>Quill</span>
+        </div>
+
+        <button class="nav active" id="dashboardButton">
+            ⌂ Dashboard
+        </button>
+
+        <button class="nav" id="readerButton">
+            📖 Novel Reader
+        </button>
+
+        <button class="nav" id="libraryButton">
+            ▣ My Library
+        </button>
+
+        <button class="nav" id="createButton">
+            ✦ Create Novel
+        </button>
+
+        <button class="nav" id="profileButtonSide">
+            👤 Profile
+        </button>
+
+        <div class="sidebar-bottom">
+            <button class="theme-button" id="themeButton">
+                ◐ Change Theme
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div class="welcome">
+                <h1 id="welcomeTitle">
+                    Good evening, Reader 👋
+                </h1>
+
+                <p>
+                    Your private personal story library.
+                </p>
+            </div>
+
+            <button class="profile-button" id="profileButton">
+
+                <span class="avatar" id="profileAvatar">
+                    R
+                </span>
+
+                <span>
+                    <b id="profileName">Reader</b><br>
+                    <small id="profileInfo">English · Fantasy</small>
+                </span>
+
+            </button>
+
+        </header>
+
+        <!-- Dashboard -->
+
+        <section id="dashboardView">
+
+            <div class="noble-dashboard">
+
+                <div class="noble-content">
+
+                    <p class="dashboard-kicker">
+                        The Lunara Quill Library
+                    </p>
+
+                    <h1 class="dashboard-title">
+                        Every story begins<br>
+                        with a little wonder.
+                    </h1>
+
+                    <p class="dashboard-description">
+                        Create a world of your own, keep your stories private,
+                        and return to them whenever inspiration calls.
+                    </p>
+
+                    <div class="dashboard-grid">
+
+                        <div class="current-book">
+
+                            <div class="book-cover" id="currentCover">
+                                The Last Lantern
+                            </div>
+
+                            <div>
+
+                                <span class="book-status">
+                                    Continue Reading
+                                </span>
+
+                                <h2 id="currentTitle">
+                                    The Last Lantern
+                                </h2>
+
+                                <p id="currentDescription">
+                                    A forgotten city appears once every hundred years.
+                                </p>
+
+                                <div id="currentMeta">
+                                    Fantasy · 5 chapters
+                                </div>
+
+                                <div class="progress-track">
+                                    <div class="progress-fill" id="currentProgress"></div>
+                                </div>
+
+                                <div class="progress-label">
+                                    <span id="currentPercent">20% complete</span>
+                                    <span id="currentChapter">Chapter 1</span>
+                                </div>
+
+                                <div class="dashboard-buttons">
+
+                                    <button class="noble-primary" id="openStoryButton">
+                                        Open Story
+                                    </button>
+
+                                    <button class="noble-secondary" id="newStoryButton">
+                                        Create Novel
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="dashboard-stats">
+
+                            <div class="dashboard-stat">
+                                <div class="dashboard-stat-icon">📚</div>
+
+                                <div>
+                                    <strong id="novelCount">0</strong>
+                                    <span>Private novels</span>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-stat">
+                                <div class="dashboard-stat-icon">✒</div>
+
+                                <div>
+                                    <strong id="chapterCount">0</strong>
+                                    <span>Chapters written</span>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-stat">
+                                <div class="dashboard-stat-icon">✦</div>
+
+                                <div>
+                                    <strong id="progressCount">0%</strong>
+                                    <span>Reading progress</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="noble-lower">
+
+                        <div class="noble-panel">
+                            <h3>A Thought for Readers</h3>
+
+                            <p class="noble-quote">
+                                “A reader lives a thousand lives before he dies.”
+                                <br>
+                                <small>— George R. R. Martin</small>
+                            </p>
+                        </div>
+
+                        <div class="noble-panel">
+
+                            <h3>Your Private Shelf</h3>
+
+                            <div class="bookshelf">
+                                <div class="shelf-book">Dreams</div>
+                                <div class="shelf-book">Moon</div>
+                                <div class="shelf-book">Echo</div>
+                                <div class="shelf-book">Secret</div>
+                                <div class="shelf-book">Dawn</div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="noble-panel" style="margin-top:21px">
+
+                        <h3>Recently Created Stories</h3>
+
+                        <div class="cards" id="recentGrid"></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Create View -->
+
+        <section class="view" id="createView">
+
+            <div class="card form-card">
+
+                <div class="section-title">
+                    <h2>Create Your Novel</h2>
+                    <span class="small-text">
+                        Offline story generator
+                    </span>
+                </div>
+
+                <div class="form-group">
+                    <label for="titleInput">Novel title</label>
+
+                    <input id="titleInput" value="The Last Lantern">
+                </div>
+
+                <div class="form-group">
+                    <label for="genreInput">Novel genre</label>
+
+                    <select id="genreInput">
+                        <option>Fantasy</option>
+                        <option>Romance</option>
+                        <option>Dark Romance</option>
+                        <option>Mystery</option>
+                        <option>Horror</option>
+                        <option>Adventure</option>
+                        <option>Science Fiction</option>
+                        <option>Comedy</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="characterOneInput">Main character 1</label>
+                    <input id="characterOneInput" placeholder="Example: Aanya Sharma" value="Mira Vale">
+                </div>
+
+                <div class="form-group">
+                    <label for="characterTwoInput">Main character 2</label>
+                    <input id="characterTwoInput" placeholder="Example: Arjun Malhotra" value="Aarav Reed">
+                </div>
+
+                <div class="form-group">
+                    <label for="leadInput">Main characters</label>
+                    <select id="leadInput">
+                        <option value="male">Only Male</option>
+                        <option value="female">Only Female</option>
+                        <option value="both" selected>Male and Female</option>
+                    </select>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="ideaInput">Story idea</label>
+
+                    <textarea id="ideaInput">A forgotten city appears once every hundred years</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="chapterInput">Number of chapters</label>
+
+                    <select id="chapterInput">
+                        <option value="3">3 chapters</option>
+                        <option value="5">5 chapters</option>
+                        <option value="7">7 chapters</option>
+                        <option value="10">10 chapter</option>
+                        <option value="15">15 chapter</option>
+                        <option value="20">20 chapter</option>
+                    </select>
+                </div>
+
+                <button class="primary-button" id="generateButton">
+                    ✦ Generate Novel
+                </button>
+
+                <p class="small-text" id="generationStatus"></p>
+
+            </div>
+
+        </section>
+
+        <!-- Reader View -->
+
+        <section class="view" id="readerView">
+
+            <div class="section-title">
+
+                <h2 id="readerTitle">
+                    Novel Reader
+                </h2>
+
+                <div class="button-row" style="margin-top:0">
+
+                    <select id="languageSelect" style="width:auto">
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                    </select>
+
+                    <select id="fontSelect" style="width:auto">
+                        <option value="19px">Normal</option>
+                        <option value="22px">Large</option>
+                        <option value="26px">Extra Large</option>
+                    </select>
+
+                    <button class="secondary-button" id="speakButton">
+                        🔊 Read Aloud
+                    </button>
+
+                    <button class="outline-button" id="exportButton">
+                        Export TXT
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="reader-layout">
+
+                <div class="reader-content">
+
+                    <h2 id="chapterTitle">
+                        Chapter 1
+                    </h2>
+
+                    <div class="small-text" id="chapterInfo"></div>
+
+                    <div class="progress-track" style="margin-top:20px">
+
+                        <div class="progress-fill" id="readerProgress"></div>
+
+                    </div>
+
+                    <div class="reader-box">
+
+                        <strong>Chapter Summary</strong>
+
+                        <div id="chapterSummary"></div>
+
+                    </div>
+
+                    <article class="reader-article" id="article"></article>
+
+                    <div class="reader-box">
+
+                        <strong>Character Information</strong>
+
+                        <div id="characterInfo"></div>
+
+                    </div>
+
+                    <div class="reader-box">
+
+                        <strong>Story Assistant</strong>
+
+                        <div class="form-group">
+
+                            <input id="questionInput" placeholder="Ask about this chapter">
+
+                        </div>
+
+                        <button class="secondary-button" id="assistantButton">
+                            Ask Assistant
+                        </button>
+
+                        <p id="assistantAnswer"></p>
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="noteInput">
+                            Private chapter note
+                        </label>
+
+                        <textarea class="note-input" id="noteInput" placeholder="Write a private note"></textarea>
+
+                        <button class="outline-button" id="saveNoteButton">
+                            Save Note
+                        </button>
+
+                    </div>
+
+                    <div class="button-row">
+
+                        <button class="outline-button" id="bookmarkButton">
+                            🔖 Bookmark
+                        </button>
+
+                        <button class="outline-button" id="previousButton">
+                            ← Previous
+                        </button>
+
+                        <button class="primary-button" id="nextButton">
+                            Next →
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <aside class="reader-sidebar">
+
+                    <h3>Chapters</h3>
+                    <div id="chapterList"></div>
+
+                    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+
+                    <h3>Bookmarks</h3>
+                    <div id="bookmarkList"></div>
+
+                </aside>
+
+            </div>
+
+        </section>
+
+        <!-- Library View -->
+
+        <section class="view" id="libraryView">
+
+            <div class="section-title">
+
+                <h2>My Private Library</h2>
+
+                <span id="libraryCount">
+                    0 novels
+                </span>
+
+            </div>
+
+            <div class="cards" id="libraryGrid"></div>
+
+        </section>
+
+    </main>
+
+    <!-- Profile Modal -->
+
+    <div class="modal" id="profileModal">
+
+        <div class="modal-box">
+
+            <h2>Reader Profile</h2>
+
+            <p class="small-text">
+                Each profile has a separate private novel library.
+            </p>
+
+            <div class="form-group">
+
+                <label for="profileNameInput">
+                    Your name
+                </label>
+
+                <input id="profileNameInput" value="Reader">
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="profileGenreInput">
+                    Favorite genre
+                </label>
+
+                <select id="profileGenreInput">
+                    <option>Fantasy</option>
+                    <option>Romance</option>
+                    <option>Dark Romance</option>
+                    <option>Mystery</option>
+                    <option>Horror</option>
+                    <option>Adventure</option>
+                    <option>Science Fiction</option>
+                    <option>Comedy</option>
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="profileLanguageInput">
+                    Preferred language
+                </label>
+
+                <select id="profileLanguageInput">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी</option>
+                </select>
+
+            </div>
+
+            <div class="modal-actions">
+
+                <button class="outline-button" id="newProfileButton">
+                    Create New Profile
+                </button>
+
+                <button class="outline-button" id="closeProfileButton">
+                    Cancel
+                </button>
+
+                <button class="primary-button" id="saveProfileButton">
+                    Save Profile
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Settings Modal -->
+
+    <div class="modal" id="settingsModal">
+
+        <div class="modal-box">
+
+            <h2>Settings</h2>
+
+            <div class="form-group">
+
+                <label for="themeInput">
+                    Appearance
+                </label>
+
+                <select id="themeInput">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="sepia">Sepia</option>
+                </select>
+
+            </div>
+
+            <div class="modal-actions">
+
+                <button class="outline-button" id="closeSettingsButton">
+                    Cancel
+                </button>
+
+                <button class="primary-button" id="saveSettingsButton">
+                    Save Settings
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const PROFILE_KEY =
+            "lunara_quill_profile";
+
+        const OLD_NOVELS_KEY =
+            "lunara_quill_novels";
+
+        const THEME_KEY =
+            "lunara_quill_theme";
+        let novels = [];
+        let activeNovel = null;
+        let currentChapter = 0;
+        let speech = null;
+
+        const $ = id =>
+            document.getElementById(id);
+
+        function toast(message) {
+            $("toast").textContent = message;
+            $("toast").classList.add("show");
+
+            setTimeout(() => {
+                $("toast").classList.remove("show");
+            }, 2300);
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function createProfileId() {
+            if (
+                window.crypto &&
+                typeof crypto.randomUUID === "function"
+            ) {
+                return crypto.randomUUID();
+            }
+
+            return "profile_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                    .toString(36)
+                    .substring(2);
+        }
+
+        function getProfile() {
+            try {
+                return JSON.parse(
+                    localStorage.getItem(PROFILE_KEY)
+                ) || null;
+            } catch {
+                return null;
+            }
+        }
+
+        function saveProfile(profile) {
+            localStorage.setItem(
+                PROFILE_KEY,
+                JSON.stringify(profile)
+            );
+        }
+
+        function getProfileId() {
+            const profile =
+                getProfile();
+
+            return profile
+                ? profile.id
+                : null;
+        }
+
+        function getPrivateNovelKey() {
+            const profileId =
+                getProfileId();
+
+            if (!profileId) {
+                return null;
+            }
+
+            return "lunara_quill_novels_" +
+                profileId;
+        }
+
+        function loadNovels() {
+            const privateKey =
+                getPrivateNovelKey();
+
+            if (!privateKey) {
+                novels = [];
+                return;
+            }
+
+            try {
+                novels =
+                    JSON.parse(
+                        localStorage.getItem(privateKey)
+                    ) || [];
+            } catch {
+                novels = [];
+            }
+        }
+
+        function saveNovels() {
+            const privateKey =
+                getPrivateNovelKey();
+
+            if (!privateKey) {
+                toast("Create a profile first");
+                return;
+            }
+
+            localStorage.setItem(
+                privateKey,
+                JSON.stringify(novels)
+            );
+        }
+
+        function showView(id) {
+            [
+                "dashboardView",
+                "createView",
+                "readerView",
+                "libraryView"
+            ].forEach(viewId => {
+                $(viewId).style.display = "none";
+            });
+
+            $(id).style.display = "block";
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
+        function pickRandom(items) {
+            return items[Math.floor(Math.random() * items.length)];
+        }
+
+        function shuffle(items) {
+            return [...items].sort(() => Math.random() - 0.5);
+        }
+
+        function createStorySeed(genre) {
+            const common = {
+                protagonists: [
+                    "a reluctant historian",
+                    "a fearless journalist",
+                    "a quiet musician",
+                    "a disgraced detective",
+                    "an ambitious architect",
+                    "a secretive photographer",
+                    "a determined researcher",
+                    "a wandering cartographer"
+                ],
+
+                villains: [
+                    "a masked collector",
+                    "an exiled ruler",
+                    "a corrupt librarian",
+                    "a forgotten cult leader",
+                    "a powerful business family",
+                    "a former friend",
+                    "an unknown witness",
+                    "a mysterious stranger"
+                ],
+
+                objects: [
+                    "a moonstone pendant",
+                    "a damaged pocket watch",
+                    "a letter written in invisible ink",
+                    "a broken music box",
+                    "a silver compass",
+                    "a faded family portrait",
+                    "an ancient brass key",
+                    "a book with missing pages"
+                ],
+
+                twists: [
+                    "the ally had been hiding a dangerous secret",
+                    "the first clue was deliberately planted",
+                    "the missing person was alive",
+                    "the villain was connected to both families",
+                    "the map pointed to a place that no longer existed",
+                    "the prophecy had been interpreted incorrectly",
+                    "the main character had visited this place as a child",
+                    "the enemy was trying to protect them"
+                ]
+            };
+
+            const genreData = {
+                Fantasy: {
+                    places: [
+                        "the floating city of Asterfall",
+                        "the crystal forest of Elaris",
+                        "the underground kingdom of Varun",
+                        "the ruined moon temple",
+                        "the dragon-lit valley of Solmere",
+                        "the library beneath the silver palace"
+                    ],
+                    dangers: [
+                        "a sleeping dragon awakened",
+                        "a magical storm erased the road",
+                        "a cursed mirror trapped their reflection",
+                        "an ancient spell began spreading",
+                        "the royal guards closed every gate",
+                        "a shadow creature followed them"
+                    ]
+                },
+
+                Romance: {
+                    places: [
+                        "a monsoon-soaked hill station",
+                        "the old bookshop near the river",
+                        "a quiet beach town",
+                        "a heritage hotel in Jaipur",
+                        "a family café in the hills",
+                        "a wedding venue beside a lake"
+                    ],
+                    dangers: [
+                        "a past misunderstanding returned",
+                        "a family secret separated them",
+                        "an old engagement was announced",
+                        "a career opportunity forced a decision",
+                        "a jealous friend revealed private messages",
+                        "a long-distance move became unavoidable"
+                    ]
+                },
+
+                "Dark Romance": {
+                    places: [
+                        "the rain-covered Blackthorne estate",
+                        "an abandoned mansion near the sea",
+                        "a private club beneath the city",
+                        "the forbidden east wing of a palace",
+                        "a locked penthouse above the skyline",
+                        "a moonlit cemetery outside town"
+                    ],
+                    dangers: [
+                        "a threatening letter appeared at midnight",
+                        "a dangerous promise demanded repayment",
+                        "an old crime was connected to their family",
+                        "someone began watching the house",
+                        "a hidden recording changed everything",
+                        "a rival demanded a cruel bargain"
+                    ]
+                },
+
+                Mystery: {
+                    places: [
+                        "the abandoned railway platform",
+                        "a locked room in the old museum",
+                        "the archive beneath city hall",
+                        "a forgotten village near the forest",
+                        "the clock tower overlooking the river",
+                        "a house with no address"
+                    ],
+                    dangers: [
+                        "every witness suddenly disappeared",
+                        "the evidence was stolen before dawn",
+                        "a false confession confused the case",
+                        "someone altered the police records",
+                        "a second crime copied the first",
+                        "a familiar person became the main suspect"
+                    ]
+                },
+
+                Horror: {
+                    places: [
+                        "the abandoned Blackwood Hotel",
+                        "a village where no one slept",
+                        "the sealed hospital wing",
+                        "an old well behind the temple",
+                        "a house that appeared only at night",
+                        "the forest where voices called by name"
+                    ],
+                    dangers: [
+                        "the walls began whispering at night",
+                        "a shadow followed every reflection",
+                        "the clocks stopped at the same time",
+                        "the dead started leaving messages",
+                        "a locked door opened by itself",
+                        "someone vanished before sunrise"
+                    ]
+                },
+
+                Adventure: {
+                    places: [
+                        "the desert ruins of Arak",
+                        "an island hidden by mist",
+                        "a mountain pass above the clouds",
+                        "a lost valley beyond the border",
+                        "an underwater temple",
+                        "the jungle city of Kairon"
+                    ],
+                    dangers: [
+                        "a bridge collapsed behind them",
+                        "a rival expedition stole their supplies",
+                        "a storm destroyed the map",
+                        "a hidden trap sealed the exit",
+                        "the only guide disappeared",
+                        "the treasure hunters caught up with them"
+                    ]
+                },
+
+                "Science Fiction": {
+                    places: [
+                        "the orbital station Meridian",
+                        "a colony beneath Europa's ice",
+                        "the abandoned planet Nysa",
+                        "a spaceship drifting beyond Saturn",
+                        "a laboratory outside normal time",
+                        "a city controlled by an artificial sun"
+                    ],
+                    dangers: [
+                        "the station AI locked every exit",
+                        "a distress signal came from the future",
+                        "oxygen levels began falling",
+                        "a clone claimed to know their past",
+                        "the ship entered an unknown wormhole",
+                        "the planet's moon began cracking apart"
+                    ]
+                },
+
+                Comedy: {
+                    places: [
+                        "a chaotic wedding hall",
+                        "a small apartment with six roommates",
+                        "a cooking competition in Goa",
+                        "a family reunion at a resort",
+                        "a college festival gone wrong",
+                        "a café famous for terrible luck"
+                    ],
+                    dangers: [
+                        "the wrong suitcase was exchanged",
+                        "a fake identity became too complicated",
+                        "the wedding rings disappeared",
+                        "a viral video caused confusion",
+                        "an accidental text reached the entire family",
+                        "a celebrity arrived at the worst moment"
+                    ]
+                }
+            };
+
+            const selected = genreData[genre] || genreData.Fantasy;
+
+            return {
+                protagonist: pickRandom(common.protagonists),
+                villain: pickRandom(common.villains),
+                object: pickRandom(common.objects),
+                twist: pickRandom(common.twists),
+                places: shuffle(selected.places),
+                dangers: shuffle(selected.dangers),
+                tone: Math.random() > 0.5 ? "hopeful" : "tense",
+                storyId: Date.now() + "-" + Math.random().toString(36).slice(2)
+            };
+        }
+
+        function getGenreStyle(genre) {
+            const styles = {
+                Fantasy: {
+                    place: "the ancient silver kingdom",
+                    mood: "forgotten magic and hidden kingdoms"
+                },
+
+                Romance: {
+                    place: "the seaside town of Bellhaven",
+                    mood: "lost promises and unexpected affection"
+                },
+
+                "Dark Romance": {
+                    place: "the rain-covered city of Blackthorne",
+                    mood: "dangerous secrets and forbidden attraction"
+                },
+
+                Mystery: {
+                    place: "the old town of Graybridge",
+                    mood: "missing letters and unexplained clues"
+                },
+
+                Horror: {
+                    place: "the abandoned Blackwood Hotel",
+                    mood: "whispers, darkness, and buried memories"
+                },
+
+                Adventure: {
+                    place: "the desert ruins of Arak",
+                    mood: "dangerous journeys and ancient treasure"
+                },
+
+                "Science Fiction": {
+                    place: "the distant orbital station Meridian",
+                    mood: "unknown planets and dangerous discoveries"
+                },
+
+                Comedy: {
+                    place: "the cheerful town of Bellweather",
+                    mood: "mistakes, friendship, and unexpected chaos"
+                }
+            };
+
+            return styles[genre] || styles.Fantasy;
+        }
+
+        function createChapter(
+            name,
+            idea,
+            genre,
+            index,
+            total,
+            hindi
+        ) {
+            const person =
+                escapeHtml(name);
+
+            const story =
+                escapeHtml(idea);
+
+            const style =
+                getGenreStyle(genre);
+            const place =
+                seed.places[index % seed.places.length];
+
+            const danger =
+                seed.dangers[index % seed.dangers.length];
+
+            const nextPlace =
+                seed.places[(index + 1) % seed.places.length];
+
+            const secondLead =
+                leadType === "both" && characterTwo.trim()
+                    ? escapeHtml(characterTwo)
+                    : null;
+
+            const leads = secondLead
+                ? `${escapeHtml(characterOne)} and ${secondLead}`
+                : escapeHtml(characterOne);
+
+            if (!hindi) {
+
+                if (index === 0) {
+                    return `
+    <p>
+        Chapter ${index + 1} began when ${leads} reached ${place}.
+        The trail connected directly to <em>${escapeHtml(idea)}</em>,
+        but the evidence pointed toward ${seed.villain}.
+    </p>
+
+    <p>
+        There they found ${seed.object}. Its hidden message revealed
+        that ${danger}. This forced them to leave for ${nextPlace}
+        before anyone could destroy the evidence.
+    </p>
+
+    <p>
+        The discovery changed their understanding of the case:
+        ${seed.twist}. By nightfall, they had a new goal and an
+        unexpected reason to distrust their closest ally.
+    </p>
+`; `
+        <p>
+          ${person} had always believed that
+          <em>${story}</em> was nothing more than a rumor.
+          But rumors become difficult to ignore when they begin
+          appearing in real life.
+        </p>
+
+        <p>
+          The first sign appeared in ${style.place}. It was connected
+          to ${style.mood}, and it carried a warning hidden for
+          generations.
+        </p>
+
+        <p>
+          ${person} discovered a sealed letter, a mysterious symbol,
+          and a promise made by someone who had disappeared years ago.
+        </p>
+
+        <p>
+          The choice was simple: return to safety or follow the first
+          clue. ${person} chose the clue, and the story began.
+        </p>
+      `;
+                }
+
+                if (genre === "Dark Romance" && index === 1) {
+                    return `
+        <p>
+          The stranger arrived after midnight, standing beneath the
+          broken street lamp outside ${style.place}.
+          Their presence was unsettling, yet impossible to ignore.
+        </p>
+
+        <p>
+          They knew details about <em>${story}</em> that nobody else
+          could know. They offered answers, but every answer came
+          with another dangerous question.
+        </p>
+
+        <p>
+          ${person} understood that attraction and danger could exist
+          in the same room. Trust would have to be earned, not demanded.
+        </p>
+
+        <p>
+          Before the night ended, the stranger gave ${person} one final
+          warning: “If you continue, neither of us will return unchanged.”
+        </p>
+      `;
+                }
+
+                if (index === total - 2) {
+                    return `
+        <p>
+          The final confrontation began at ${style.place}. Every secret
+          connected to <em>${story}</em> had reached the surface.
+        </p>
+
+        <p>
+          The enemy tried to separate ${person} from the truth, but
+          the choices made during the journey had created unexpected
+          allies.
+        </p>
+
+        <p>
+          ${person} refused to surrender freedom, trust, or the right
+          to choose their own future. The hidden power began to break.
+        </p>
+
+        <p>
+          The night ended with one final decision: leave the past behind,
+          or face it together and begin again.
+        </p>
+      `;
+                }
+
+                if (index === total - 1) {
+                    return `
+        <p>
+          After the final conflict, ${person} returned to ${style.place}.
+          The town looked familiar, but life had changed completely.
+        </p>
+
+        <p>
+          The truth about <em>${story}</em> was finally understood.
+          It had been a story of courage, consequences, and difficult
+          choices.
+        </p>
+
+        <p>
+          ${person} no longer believed that love meant losing freedom.
+          Trust had to be mutual, and every relationship needed honesty.
+        </p>
+
+        <p>
+          At sunrise, ${person} closed the old letter. The past had ended,
+          but the future was finally theirs to write.
+        </p>
+      `;
+                }
+
+                return `
+      <p>
+        The journey became more dangerous as ${person} followed the
+        next clue through ${style.place}.
+      </p>
+
+      <p>
+        Every discovery revealed another layer of
+        <em>${story}</em>, and someone was working against them.
+      </p>
+
+      <p>
+        ${person} met people who wanted help, power, revenge, or
+        forgiveness. Not every promise could be trusted.
+      </p>
+
+      <p>
+        By the end of the chapter, ${person} understood that the real
+        danger was not the unknown. It was the truth waiting inside it.
+      </p>
+    `;
+            }
+
+            if (index === 0) {
+                return `
+      <p>
+        ${person} हमेशा मानता था कि
+        <em>${story}</em> केवल एक अफवाह है। लेकिन जब अफवाहें सच होने
+        लगें, तो उन्हें नजरअंदाज करना कठिन हो जाता है।
+      </p>
+
+      <p>
+        पहला संकेत ${style.place} में दिखाई दिया। वह
+        ${style.mood} से जुड़ा था और कई पीढ़ियों से छिपी चेतावनी
+        अपने साथ लाया था।
+      </p>
+
+      <p>
+        ${person} को एक बंद पत्र, रहस्यमय निशान और कई वर्षों पहले
+        गायब हुए व्यक्ति का वादा मिला।
+      </p>
+
+      <p>
+        ${person} के सामने दो रास्ते थे: सुरक्षित घर लौटना या
+        पहले संकेत का पीछा करना। उसने संकेत का पीछा किया और कहानी
+        शुरू हो गई।
+      </p>
+    `;
+            }
+
+            if (genre === "Dark Romance" && index === 1) {
+                return `
+      <p>
+        आधी रात के बाद वह अजनबी ${style.place} के बाहर टूटे हुए
+        स्ट्रीट लैंप के नीचे दिखाई दिया। उसकी उपस्थिति डरावनी थी,
+        फिर भी उसे नजरअंदाज करना असंभव था।
+      </p>
+
+      <p>
+        वह <em>${story}</em> के बारे में ऐसी बातें जानता था जिन्हें
+        कोई और नहीं जान सकता था। उसने जवाब देने की पेशकश की,
+        लेकिन हर जवाब के साथ एक नया खतरनाक सवाल आया।
+      </p>
+
+      <p>
+        ${person} समझ गया कि आकर्षण और खतरा एक ही कमरे में मौजूद
+        हो सकते हैं। विश्वास मांगा नहीं जा सकता, उसे कमाना पड़ता है।
+      </p>
+
+      <p>
+        रात समाप्त होने से पहले अजनबी ने चेतावनी दी:
+        “यदि तुम आगे बढ़े, तो हम दोनों बदल जाएंगे।”
+      </p>
+    `;
+            }
+
+            if (index === total - 2) {
+                return `
+      <p>
+        अंतिम संघर्ष ${style.place} में शुरू हुआ। कहानी से जुड़े
+        सभी रहस्य अब सामने आ चुके थे।
+      </p>
+
+      <p>
+        दुश्मन ने ${person} को सच्चाई से अलग करने की कोशिश की,
+        लेकिन यात्रा के दौरान बने संबंध अब उसके साथ थे।
+      </p>
+
+      <p>
+        ${person} ने अपनी आजादी, विश्वास और भविष्य पर अपना अधिकार
+        छोड़ने से इनकार कर दिया। छिपी हुई शक्ति टूटने लगी।
+      </p>
+
+      <p>
+        रात का अंत एक निर्णय के साथ हुआ: अतीत से भागना या उसे
+        स्वीकार करके एक नई शुरुआत करना।
+      </p>
+    `;
+            }
+
+            if (index === total - 1) {
+                return `
+      <p>
+        अंतिम संघर्ष के बाद ${person} ${style.place} वापस लौट आया।
+        शहर वही था, लेकिन जीवन पूरी तरह बदल चुका था।
+      </p>
+
+      <p>
+        <em>${story}</em> की सच्चाई समझ में आ गई। यह साहस,
+        परिणाम और कठिन निर्णयों की कहानी थी।
+      </p>
+
+      <p>
+        ${person} अब जानता था कि प्रेम का अर्थ अपनी आजादी खोना नहीं है।
+        विश्वास दोनों ओर से होना चाहिए और हर संबंध में ईमानदारी जरूरी है।
+      </p>
+
+      <p>
+        सूरज उगते समय ${person} ने पुराना पत्र बंद कर दिया।
+        अतीत समाप्त हो चुका था, लेकिन भविष्य अब उसके हाथ में था।
+      </p>
+    `;
+            }
+
+            return `
+    <p>
+      ${person} ${style.place} में अगले संकेत का पीछा करते हुए
+      और गहराई तक चला गया।
+    </p>
+
+    <p>
+      हर खोज <em>${story}</em> की एक नई परत सामने ला रही थी।
+      कोई उनके खिलाफ काम कर रहा था।
+    </p>
+
+    <p>
+      ${person} को ऐसे लोग मिले जो मदद, शक्ति, बदला या माफी चाहते थे।
+      हर वादा भरोसे के योग्य नहीं था।
+    </p>
+
+    <p>
+      अध्याय के अंत तक ${person} समझ गया कि असली खतरा अज्ञात नहीं था।
+      असली खतरा वह सच्चाई थी जो उसके भीतर छिपी थी।
+    </p>
+  `;
+        }
+
+        function generateNovelData() {
+            const title =
+                $("titleInput").value.trim() ||
+                "The Last Lantern";
+
+            const genre =
+                $("genreInput").value;
+
+            const characterOne =
+                $("characterOneInput").value.trim() ||
+                "Mira Vale";
+
+            const characterTwo =
+                $("characterTwoInput").value.trim() ||
+                "Aarav Reed";
+
+            const leadType =
+                $("leadInput").value;
+
+            const idea =
+                $("ideaInput").value.trim() ||
+                "A forgotten city appears once every hundred years";
+
+            const total =
+                Number($("chapterInput").value);
+
+            const chapters = [];
+
+            for (let i = 0; i < total; i++) {
+                chapters.push({
+                    title: "Chapter " + (i + 1),
+
+                    english: createChapter(
+                        characterOne,
+                        characterTwo,
+                        leadType,
+                        idea,
+                        genre,
+                        i,
+                        total,
+                        false
+                    ),
+
+                    hindi: createChapter(
+                        characterOne,
+                        characterTwo,
+                        leadType,
+                        idea,
+                        genre,
+                        i,
+                        total,
+                        true
+                    ),
+
+                    note: "",
+                    bookmarked: false
+                });
+            }
+
+            return {
+                id: createProfileId(),
+                title,
+                genre,
+                characterOne,
+                characterTwo,
+                leadType,
+                idea,
+                chapters,
+                currentChapter: 0
+            };
+        }
+        function updateProfileDisplay() {
+            const profile =
+                getProfile();
+
+            if (!profile) {
+                return;
+            }
+
+            $("profileName").textContent =
+                profile.name;
+
+            $("profileAvatar").textContent =
+                profile.name.charAt(0).toUpperCase();
+
+            $("profileInfo").textContent =
+                `${profile.language === "hi" ? "हिन्दी" : "English"} · ${profile.genre}`;
+
+            $("welcomeTitle").textContent =
+                "Good evening, " +
+                profile.name +
+                " 👋";
+        }
+
+        function renderDashboard() {
+            const total =
+                novels.reduce(
+                    (sum, novel) => sum + novel.chapters.length,
+                    0
+                );
+
+            const progress =
+                activeNovel
+                    ? Math.round(
+                        ((currentChapter + 1) /
+                            activeNovel.chapters.length) * 100
+                    )
+                    : 0;
+
+            $("novelCount").textContent =
+                novels.length;
+
+            $("chapterCount").textContent =
+                total;
+
+            $("progressCount").textContent =
+                progress + "%";
+
+            if (activeNovel) {
+
+                $("currentCover").textContent =
+                    activeNovel.title;
+
+                $("currentTitle").textContent =
+                    activeNovel.title;
+
+                $("currentDescription").textContent =
+                    activeNovel.idea;
+
+                $("currentMeta").textContent =
+                    `${activeNovel.genre} · ${activeNovel.chapters.length} chapters`;
+
+                $("currentProgress").style.width =
+                    progress + "%";
+
+                $("currentPercent").textContent =
+                    progress + "% complete";
+
+                $("currentChapter").textContent =
+                    "Chapter " + (currentChapter + 1);
+            }
+
+            renderNovelCards();
+        }
+
+        function renderNovelCards() {
+            $("recentGrid").innerHTML = "";
+            $("libraryGrid").innerHTML = "";
+
+            novels.forEach(novel => {
+
+                ["recentGrid", "libraryGrid"].forEach(gridId => {
+
+                    const card =
+                        document.createElement("div");
+
+                    card.className = "novel-card";
+
+                    card.innerHTML = `
+        <div class="novel-cover">
+          ${escapeHtml(novel.title)}
+        </div>
+
+        <h3>${escapeHtml(novel.title)}</h3>
+
+        <p>
+          ${escapeHtml(novel.genre)} ·
+          ${novel.chapters.length} chapters
+        </p>
+
+        <button class="delete-button">
+          Delete Novel
+        </button>
+      `;
+
+                    card.onclick = event => {
+
+                        if (event.target.classList.contains("delete-button")) {
+                            deleteNovel(novel.id);
+                            return;
+                        }
+
+                        activeNovel = novel;
+                        currentChapter =
+                            novel.currentChapter || 0;
+
+                        renderReader();
+                        showView("readerView");
+                    };
+
+                    $(gridId).appendChild(card);
+                });
+            });
+
+            $("libraryCount").textContent =
+                novels.length +
+                " novel" +
+                (novels.length === 1 ? "" : "s");
+        }
+
+        function deleteNovel(novelId) {
+            const novel =
+                novels.find(item => item.id === novelId);
+
+            if (!novel) {
+                return;
+            }
+
+            if (!confirm(
+                "Delete \"" +
+                novel.title +
+                "\" permanently?"
+            )) {
+                return;
+            }
+
+            novels =
+                novels.filter(item => item.id !== novelId);
+
+            saveNovels();
+
+            if (activeNovel && activeNovel.id === novelId) {
+                activeNovel =
+                    novels[0] || null;
+
+                currentChapter = 0;
+            }
+
+            renderDashboard();
+            toast("Novel deleted");
+        }
+
+        function renderReader() {
+            if (!activeNovel) {
+                return;
+            }
+
+            const chapter =
+                activeNovel.chapters[currentChapter];
+
+            const hindi =
+                $("languageSelect").value === "hi";
+
+            $("readerTitle").textContent =
+                activeNovel.title;
+
+            $("chapterTitle").textContent =
+                hindi
+                    ? "अध्याय " + (currentChapter + 1)
+                    : chapter.title;
+
+            $("chapterInfo").textContent =
+                `${activeNovel.genre} · Chapter ` +
+                `${currentChapter + 1} of ${activeNovel.chapters.length}`;
+
+            $("article").innerHTML =
+                hindi
+                    ? chapter.hindi
+                    : chapter.english;
+
+            $("chapterSummary").textContent =
+                hindi
+                    ? "इस अध्याय में कहानी का रहस्य और संघर्ष आगे बढ़ता है।"
+                    : "This chapter develops the main story mystery and conflict.";
+
+            const characterNames =
+                activeNovel.leadType === "both"
+                    ? `${activeNovel.characterOne} and ${activeNovel.characterTwo}`
+                    : activeNovel.characterOne;
+
+            $("characterInfo").textContent =
+                hindi
+                    ? `${characterNames} इस कहानी के मुख्य पात्र हैं।`
+                    : `${characterNames} are the main characters of this novel.`;
+            $("noteInput").value =
+                chapter.note || "";
+
+            $("bookmarkButton").textContent =
+                chapter.bookmarked
+                    ? "🔖 Remove Bookmark"
+                    : "🔖 Bookmark";
+
+            $("readerProgress").style.width =
+                ((currentChapter + 1) /
+                    activeNovel.chapters.length * 100) +
+                "%";
+
+            $("previousButton").disabled =
+                currentChapter === 0;
+
+            $("nextButton").disabled =
+                currentChapter ===
+                activeNovel.chapters.length - 1;
+
+            $("chapterList").innerHTML = "";
+
+            activeNovel.chapters.forEach((item, index) => {
+
+                const button =
+                    document.createElement("button");
+
+                button.className =
+                    "chapter-button" +
+                    (index === currentChapter
+                        ? " active"
+                        : "");
+
+                button.textContent =
+                    hindi
+                        ? "अध्याय " + (index + 1)
+                        : item.title;
+
+                button.onclick = () => {
+                    currentChapter = index;
+                    activeNovel.currentChapter = index;
+                    saveNovels();
+                    renderReader();
+                };
+
+                $("chapterList").appendChild(button);
+            });
+
+            $("bookmarkList").innerHTML = "";
+
+            activeNovel.chapters.forEach((item, index) => {
+
+                if (item.bookmarked) {
+
+                    const button =
+                        document.createElement("button");
+
+                    button.className =
+                        "chapter-button";
+
+                    button.textContent =
+                        "Chapter " + (index + 1);
+
+                    button.onclick = () => {
+                        currentChapter = index;
+                        renderReader();
+                    };
+
+                    $("bookmarkList")
+                        .appendChild(button);
+                }
+            });
+
+            activeNovel.currentChapter =
+                currentChapter;
+
+            saveNovels();
+        }
+
+        /* Navigation */
+
+        $("dashboardButton").onclick =
+            () => showView("dashboardView");
+
+        $("readerButton").onclick = () => {
+
+            if (!activeNovel) {
+                toast("Create a novel first");
+                return;
+            }
+
+            renderReader();
+            showView("readerView");
+        };
+
+        $("libraryButton").onclick = () => {
+            renderNovelCards();
+            showView("libraryView");
+        };
+
+        $("createButton").onclick =
+            () => showView("createView");
+
+        $("newStoryButton").onclick =
+            () => showView("createView");
+
+        $("openStoryButton").onclick = () => {
+
+            if (activeNovel) {
+                renderReader();
+                showView("readerView");
+            } else {
+                showView("createView");
+            }
+        };
+
+        /* Create novel */
+
+
+        $("generateButton").onclick = () => {
+            try {
+                const novel = generateNovelData();
+
+                novels.unshift(novel);
+                activeNovel = novel;
+                currentChapter = 0;
+
+                saveNovels();
+                renderDashboard();
+                renderReader();
+                showView("readerView");
+
+                $("generationStatus").textContent =
+                    "Novel generated successfully.";
+
+                toast("Novel created");
+            } catch (error) {
+                console.error("Novel generation error:", error);
+
+                $("generationStatus").textContent =
+                    "Error: " + error.message;
+
+                toast("Novel create nahi ho paya");
+            }
+        };
+
+
+        function createChapter(
+            characterOne,
+            characterTwo,
+            leadType,
+            idea,
+            genre,
+            index,
+            total,
+            hindi
+        ) {
+            const firstCharacter = escapeHtml(characterOne);
+            const secondCharacter = escapeHtml(characterTwo);
+            const story = escapeHtml(idea);
+            const style = getGenreStyle(genre);
+
+            const hasSecondCharacter =
+                leadType === "both" && characterTwo.trim() !== "";
+
+            const secondCharacterText = hasSecondCharacter
+                ? secondCharacter
+                : "";
+
+            // Vocabulary banks to avoid repetition
+            const actionWords = [
+                "discovered", "uncovered", "found", "located", "identified",
+                "detected", "spotted", "noticed", "observed", "revealed"
+            ];
+
+            const emotionWords = [
+                "fear", "dread", "anxiety", "tension", "uncertainty",
+                "suspicion", "alarm", "concern", "apprehension", "worry"
+            ];
+
+            const mysteryWords = [
+                "secret", "enigma", "puzzle", "riddle", "conundrum",
+                "mystery", "unknown", "hidden truth", "buried past", "forgotten tale"
+            ];
+
+            const timeWords = [
+                "midnight", "dawn", "twilight", "dusk", "early morning",
+                "late evening", "before sunrise", "after sunset", "in the dark hours",
+                "when the clock struck twelve"
+            ];
+
+            const placeModifiers = [
+                "abandoned", "forgotten", "deserted", "empty", "silent",
+                "dark", "mysterious", "ancient", "hidden", "sealed"
+            ];
+
+            const conflictWords = [
+                "obstacle", "barrier", "challenge", "threat", "danger",
+                "enemy", "rival", "opposition", "resistance", "adversary"
+            ];
+
+            const discoveryWords = [
+                "clue", "evidence", "proof", "trace", "sign",
+                "indication", "hint", "signal", "marker", "symbol"
+            ];
+
+            // Chapter-specific unique events (no repetition)
+            const chapterEvents = [
+                {
+                    location: "the rusted railway station where trains stopped in 1987",
+                    discovery: "a leather-bound diary with pages torn from the middle",
+                    twist: "the ink was still wet on the final entry",
+                    revelation: "a name written in handwriting that matched their own",
+                    atmosphere: "the air smelled of coal dust and old newspapers"
+                },
+                {
+                    location: "the basement archive beneath the city library",
+                    discovery: "a map drawn on human skin with coordinates in blood",
+                    twist: "the map moved when touched, rearranging itself",
+                    revelation: "one location pulsed with faint blue light",
+                    atmosphere: "dust motes danced in the single beam of flashlight"
+                },
+                {
+                    location: "the clocktower that hadn't worked since the war",
+                    discovery: "gears made of a metal that shouldn't exist",
+                    twist: "the clock began ticking backward when they entered",
+                    revelation: "a compartment opened, revealing a photograph from tomorrow",
+                    atmosphere: "the sound of ticking echoed like a heartbeat"
+                },
+                {
+                    location: "the lighthouse on the cliff that appeared on no maps",
+                    discovery: "the keeper's log with entries dated after his death",
+                    twist: "the light beam showed things that weren't there",
+                    revelation: "a shipwreck visible only in the reflection, not the water",
+                    atmosphere: "salt spray mixed with the scent of burning oil"
+                },
+                {
+                    location: "the theater where the curtain never fell",
+                    discovery: "a script with dialogue that hadn't happened yet",
+                    twist: "the actors' names were people they knew",
+                    revelation: "the final scene described their own deaths",
+                    atmosphere: "phantom applause echoed from empty seats"
+                },
+                {
+                    location: "the greenhouse where plants grew in impossible shapes",
+                    discovery: "a seed pod that whispered when held to the ear",
+                    twist: "the whispers spoke in a language they'd never heard",
+                    revelation: "one plant bore fruit with faces pressed inside",
+                    atmosphere: "humidity carried the perfume of rotting flowers"
+                },
+                {
+                    location: "the bridge that connected two islands that didn't exist",
+                    discovery: "toll booth records showing their own car from last week",
+                    twist: "the bridge disappeared when they tried to cross back",
+                    revelation: "a toll ticket with a date from three years in the future",
+                    atmosphere: "fog so thick they couldn't see their own hands"
+                },
+                {
+                    location: "the hospital wing sealed since the epidemic",
+                    discovery: "patient files with their own medical history",
+                    twist: "the signatures were from doctors who died decades ago",
+                    revelation: "one file was labeled with tomorrow's date",
+                    atmosphere: "the smell of antiseptic mixed with something sweeter"
+                }
+            ];
+
+            const event = chapterEvents[index % chapterEvents.length];
+
+            // Generate unique sentences using vocabulary banks
+            function generateUniqueSentence(context, usedWords = []) {
+                const templates = {
+                    opening: [
+                        `${firstCharacter} ${actionWords[index % actionWords.length]} ${event.discovery} in ${event.location}.`,
+                        `Inside ${event.location}, ${event.discovery} waited, ${event.atmosphere}.`,
+                        `The ${placeModifiers[index % placeModifiers.length]} ${event.location} held ${event.discovery}.`,
+                        `${timeWords[index % timeWords.length]} brought ${firstCharacter} to ${event.location}.`
+                    ],
+                    conflict: [
+                        `But ${event.twist}, creating ${emotionWords[index % emotionWords.length]} in ${firstCharacter}'s chest.`,
+                        `${event.twist}. This was the ${conflictWords[index % conflictWords.length]} they hadn't anticipated.`,
+                        `The ${conflictWords[(index + 1) % conflictWords.length]} came when ${event.twist}.`,
+                        `${event.twist}, and ${emotionWords[(index + 2) % emotionWords.length]} gripped their throat.`
+                    ],
+                    revelation: [
+                        `${event.revelation} changed everything about the ${mysteryWords[index % mysteryWords.length]}.`,
+                        `The ${discoveryWords[index % discoveryWords.length]} was clear: ${event.revelation}.`,
+                        `${event.revelation}. This ${discoveryWords[(index + 1) % discoveryWords.length]} altered the entire ${mysteryWords[(index + 1) % mysteryWords.length]}.`,
+                        `Understanding dawned: ${event.revelation}. The ${mysteryWords[index % mysteryWords.length]} deepened.`
+                    ]
+                };
+
+                return templates[context][index % templates[context].length];
+            }
+
+            if (!hindi) {
+                // Chapter 1 - Unique opening
+                if (index === 0) {
+                    return `
+                <p>
+                    ${firstCharacter} never believed ${story} was real
+                    until the envelope arrived. No return address, just
+                    their name written in ink that shimmered like oil.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('opening')} ${event.atmosphere},
+                    and every shadow seemed to breathe.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('conflict')} The ${mysteryWords[0]}
+                    surrounding ${style.place} had begun.
+                </p>
+
+                ${hasSecondCharacter
+                            ? `<p>
+                            Meanwhile, ${secondCharacterText} received
+                            an identical package in ${placeModifiers[(index + 3) % placeModifiers.length]
+                            } circumstances.
+                            Both envelopes bore the same ${discoveryWords[0]}:
+                            a symbol that matched ${style.mood}.
+                           </p>`
+                            : ""
+                        }
+
+                <p>
+                    ${hasSecondCharacter
+                            ? `${firstCharacter} and ${secondCharacterText}`
+                            : firstCharacter
+                        }
+                    faced the same ${emotionWords[0]}: pursue the
+                    ${discoveryWords[1]} or return to safety. They chose
+                    the unknown.
+                </p>
+            `;
+                }
+
+                // Chapter 2 - First major discovery
+                if (index === 1) {
+                    return `
+                <p>
+                    ${generateUniqueSentence('opening')} The ${placeModifiers[1]}
+                    atmosphere pressed against their skin like cold water.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('conflict')} ${firstCharacter}
+                    realized this ${mysteryWords[1]} was far older than
+                    ${style.place}.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('revelation')} The ${discoveryWords[2]}
+                    pointed toward ${style.mood}, but the path remained
+                    obscured by ${emotionWords[1]}.
+                </p>
+
+                ${hasSecondCharacter
+                            ? `<p>
+                            ${secondCharacterText} emerged from the
+                            ${placeModifiers[2]} darkness, clutching
+                            a similar ${discoveryWords[3]}. Their eyes
+                            met with mutual ${emotionWords[2]}.
+                           </p>`
+                            : ""
+                        }
+
+                <p>
+                    Footsteps echoed from the ${placeModifiers[3]} corridor.
+                    The ${conflictWords[3]} had found them.
+                </p>
+            `;
+                }
+
+                // Second-to-last - Climax begins
+                if (index === total - 2) {
+                    return `
+                <p>
+                    The final ${mysteryWords[4]} converged at ${style.place}.
+                    Every ${discoveryWords[4]} from previous chapters led
+                    to this ${timeWords[4]} moment.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('opening')} ${event.atmosphere}
+                    intensified as ${event.twist}.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('revelation')} ${hasSecondCharacter
+                            ? `${firstCharacter} and ${secondCharacterText}`
+                            : firstCharacter
+                        }
+                    understood the ${mysteryWords[5]} at last.
+                </p>
+
+                <p>
+                    ${generateUniqueSentence('conflict')} The ${conflictWords[5]}
+                    made their final move. ${emotionWords[5]} warred with
+                    determination in ${firstCharacter}'s chest.
+                </p>
+            `;
+                }
+
+                // Last chapter - Resolution
+                if (index === total - 1) {
+                    return `
+                <p>
+                    ${timeWords[6]} arrived after the ${mysteryWords[6]} ended.
+                    ${style.place} looked ${placeModifiers[6]} yet familiar,
+                    as if ${emotionWords[6]} had altered its very stones.
+                </p>
+
+                ${hasSecondCharacter
+                            ? `<p>
+                            ${secondCharacterText} stood beside
+                            ${firstCharacter}, both carrying ${discoveryWords[6]}
+                            of what they'd lost and gained. The ${mysteryWords[7]}
+                            was solved, but its ${emotionWords[7]} lingered.
+                           </p>`
+                            : `<p>
+                            ${firstCharacter} carried ${discoveryWords[6]}
+                            of the ${mysteryWords[7]}. The ${emotionWords[7]}
+                            of transformation remained, permanent and profound.
+                           </p>`
+                        }
+
+                <p>
+                    ${generateUniqueSentence('revelation')} The ${placeModifiers[7]}
+                    chapter of ${story} closed forever.
+                </p>
+
+                <p>
+                    ${timeWords[7]} brought ${placeModifiers[7]} peace.
+                    ${hasSecondCharacter
+                            ? `${firstCharacter} and ${secondCharacterText}`
+                            : firstCharacter
+                        }
+                    walked toward ${style.mood}, leaving the ${mysteryWords[0]}
+                    behind.
+                </p>
+            `;
+                }
+
+                // Middle chapters - Maximum uniqueness
+                return `
+            <p>
+                ${generateUniqueSentence('opening')} ${event.atmosphere}
+                wrapped around them like ${placeModifiers[index % placeModifiers.length]}
+                fabric.
+            </p>
+
+            <p>
+                ${generateUniqueSentence('conflict')} This ${mysteryWords[index % mysteryWords.length]}
+                demanded ${actionWords[(index + 1) % actionWords.length]} and
+                ${emotionWords[(index + 1) % emotionWords.length]}.
+            </p>
+
+            <p>
+                ${generateUniqueSentence('revelation')} The ${discoveryWords[index % discoveryWords.length]}
+                pointed toward ${style.mood}, but ${conflictWords[index % conflictWords.length]}
+                lurked in the ${placeModifiers[(index + 1) % placeModifiers.length]} shadows.
+            </p>
+
+            ${hasSecondCharacter
+                        ? `<p>
+                        ${secondCharacterText} ${actionWords[(index + 2) % actionWords.length]}
+                        another ${discoveryWords[(index + 1) % discoveryWords.length]}
+                        nearby. Together, they ${actionWords[(index + 3) % actionWords.length]}
+                        that the ${mysteryWords[(index + 1) % mysteryWords.length]} was
+                        larger than either had ${actionWords[(index + 4) % actionWords.length]}.
+                       </p>`
+                        : `<p>
+                        ${firstCharacter} ${actionWords[(index + 2) % actionWords.length]}
+                        another ${discoveryWords[(index + 1) % discoveryWords.length]}
+                        nearby. The ${mysteryWords[(index + 1) % mysteryWords.length]}
+                        was larger than ${firstCharacter} had ${actionWords[(index + 4) % actionWords.length]}.
+                       </p>`
+                    }
+
+            <p>
+                ${timeWords[(index + 1) % timeWords.length]} approached.
+                The ${conflictWords[(index + 1) % conflictWords.length]} grew
+                ${placeModifiers[(index + 2) % placeModifiers.length]}, and
+                ${emotionWords[(index + 2) % emotionWords.length]} tightened
+                like a ${placeModifiers[(index + 3) % placeModifiers.length]} noose.
+            </p>
+        `;
+            }
+
+            // Hindi version with unique vocabulary
+            const hindiActionWords = [
+                "खोजा", "पाया", "देखा", "पहचाना", "समझा",
+                "जाना", "सूझा", "महसूस किया", "अनुभव किया", "सामना किया"
+            ];
+
+            const hindiEmotionWords = [
+                "डर", "भय", "चिंता", "तनाव", "अनिश्चितता",
+                "संदेह", "घबराहट", "परेशानी", "भयभीतता", "चिंतितता"
+            ];
+
+            const hindiMysteryWords = [
+                "रहस्य", "पहेली", "गूढ़ बात", "अज्ञात सत्य", "छिपी कहानी",
+                "भूला हुआ सच", "दबा हुआ राज", "अनसुलझा सवाल", "गुप्त बात", "अस्पष्टता"
+            ];
+
+            const hindiTimeWords = [
+                "आधी रात", "सुबह", "शाम", "दोपहर", "रात के अंधेरे में",
+                "सूरज उगने से पहले", "सूरज डूबने के बाद", "तड़के", "रात के सन्नाटे में",
+                "जब घड़ी ने बारह बजाए"
+            ];
+
+            const hindiPlaceModifiers = [
+                "छोड़ा हुआ", "भूला हुआ", "खाली", "सूना", "शांत",
+                "अंधेरा", "रहस्यमय", "प्राचीन", "छिपा हुआ", "बंद"
+            ];
+
+            const hindiConflictWords = [
+                "रुकावट", "बाधा", "चुनौती", "खतरा", "दुश्मन",
+                "प्रतिद्वंद्वी", "विरोध", "प्रतिरोध", "विपक्षी", "समस्या"
+            ];
+
+            const hindiDiscoveryWords = [
+                "संकेत", "साक्ष्य", "प्रमाण", "निशान", "चिह्न",
+                "सुराग", "इशारा", "संकेत", "मार्कर", "प्रतीक"
+            ];
+
+            if (index === 0) {
+                return `
+            <p>
+                ${firstCharacter} कभी नहीं मानता था कि ${story} सच है
+                जब तक वह लिफाफा नहीं आया। कोई वापसी का पता नहीं,
+                बस उनका नाम उस स्याही में लिखा था जो तेल की तरह चमकती थी।
+            </p>
+
+            <p>
+                ${event.location} में ${event.discovery} मिला।
+                ${event.atmosphere}, और हर छाया सांस लेती हुई लगती थी।
+            </p>
+
+            <p>
+                ${event.twist}, जिसने ${firstCharacter} के सीने में
+                ${hindiEmotionWords[0]} पैदा कर दिया। ${hindiMysteryWords[0]}
+                ${style.place} के आसपास शुरू हो चुका था।
+            </p>
+
+            ${hasSecondCharacter
+                        ? `<p>
+                        इसी बीच, ${secondCharacterText} को वैसा ही
+                        पैकेट ${hindiPlaceModifiers[(index + 3) % hindiPlaceModifiers.length]}
+                        हालात में मिला। दोनों लिफाफों पर वही ${hindiDiscoveryWords[0]}
+                        था: एक निशान जो ${style.mood} से मेल खाता था।
+                       </p>`
+                        : ""
+                    }
+
+            <p>
+                ${hasSecondCharacter
+                        ? `${firstCharacter} और ${secondCharacterText}`
+                        : firstCharacter
+                    }
+                के सामने वही ${hindiEmotionWords[0]} था: ${hindiDiscoveryWords[1]}
+                का पीछा करें या सुरक्षित घर लौटें। दोनों ने अज्ञात को चुना।
+            </p>
+        `;
+            }
+
+            if (index === 1) {
+                return `
+            <p>
+                ${event.location} में ${event.discovery} का इंतजार था।
+                ${hindiPlaceModifiers[1]} माहौल उनकी त्वचा पर ठंडे
+                पानी की तरह दबाव डाल रहा था।
+            </p>
+
+            <p>
+                ${event.twist}। ${firstCharacter} को समझ आया कि यह
+                ${hindiMysteryWords[1]} ${style.place} से कहीं अधिक
+                पुराना था।
+            </p>
+
+            <p>
+                ${event.revelation}। ${hindiDiscoveryWords[2]}
+                ${style.mood} की ओर इशारा कर रहा था, लेकिन रास्ता
+                ${hindiEmotionWords[1]} से ढका हुआ था।
+            </p>
+
+            ${hasSecondCharacter
+                        ? `<p>
+                        ${secondCharacterText} ${hindiPlaceModifiers[2]}
+                        अंधेरे से प्रकट हुआ, वैसा ही ${hindiDiscoveryWords[3]}
+                        थामे हुए। दोनों की आंखों में आपसी ${hindiEmotionWords[2]}
+                        था।
+                       </p>`
+                        : ""
+                    }
+
+            <p>
+                ${hindiPlaceModifiers[3]} गलियारे से कदमों की आवाज आई।
+                ${hindiConflictWords[3]} ने उन्हें ढूंढ लिया था।
+            </p>
+        `;
+            }
+
+            if (index === total - 2) {
+                return `
+            <p>
+                अंतिम ${hindiMysteryWords[4]} ${style.place} पर मिले।
+                पिछले सभी अध्यायों के ${hindiDiscoveryWords[4]} इसी
+                ${hindiTimeWords[4]} क्षण की ओर ले जा रहे थे।
+            </p>
+
+            <p>
+                ${event.location} में ${event.discovery}। ${event.atmosphere}
+                और गहरा हो गया जब ${event.twist}।
+            </p>
+
+            <p>
+                ${event.revelation}। ${hasSecondCharacter
+                        ? `${firstCharacter} और ${secondCharacterText}`
+                        : firstCharacter
+                    }
+                ने अंततः ${hindiMysteryWords[5]} को समझ लिया।
+            </p>
+
+            <p>
+                ${event.twist}। ${hindiConflictWords[5]} ने अपना अंतिम
+                चाल चला। ${firstCharacter} के सीने में ${hindiEmotionWords[5]}
+                और दृढ़ता के बीच संघर्ष चल रहा था।
+            </p>
+        `;
+            }
+
+            if (index === total - 1) {
+                return `
+            <p>
+                ${hindiTimeWords[6]} ${hindiMysteryWords[6]} के बाद आया।
+                ${style.place} ${hindiPlaceModifiers[6]} फिर भी परिचित
+                लग रहा था, जैसे ${hindiEmotionWords[6]} ने उसके पत्थरों
+                को भी बदल दिया हो।
+            </p>
+
+            ${hasSecondCharacter
+                        ? `<p>
+                        ${secondCharacterText} ${firstCharacter} के साथ
+                        खड़ा था, दोनों के पास ${hindiDiscoveryWords[6]}
+                        था कि उन्होंने क्या खोया और क्या पाया।
+                        ${hindiMysteryWords[7]} सुलझ चुका था, लेकिन
+                        उसकी ${hindiEmotionWords[7]} बनी रही।
+                       </p>`
+                        : `<p>
+                        ${firstCharacter} के पास ${hindiDiscoveryWords[6]}
+                        था ${hindiMysteryWords[7]} का। ${hindiEmotionWords[7]}
+                        का परिवर्तन स्थायी और गहरा बना रहा।
+                       </p>`
+                    }
+
+            <p>
+                ${event.revelation}। ${hindiPlaceModifiers[7]} अध्याय
+                ${story} का हमेशा के लिए बंद हो गया।
+            </p>
+
+            <p>
+                ${hindiTimeWords[7]} ने ${hindiPlaceModifiers[7]} शांति
+                लाई। ${hasSecondCharacter
+                        ? `${firstCharacter} और ${secondCharacterText}`
+                        : firstCharacter
+                    }
+                ${style.mood} की ओर चल दिए, ${hindiMysteryWords[0]}
+                को पीछे छोड़ते हुए।
+            </p>
+        `;
+            }
+
+            // Middle chapters in Hindi
+            return `
+        <p>
+            ${event.location} अगला गंतव्य बना। ${event.atmosphere}
+            उन्हें ${hindiPlaceModifiers[index % hindiPlaceModifiers.length]}
+            कपड़े की तरह लपेटे हुए था।
+        </p>
+
+        <p>
+            ${event.twist}। इस ${hindiMysteryWords[index % hindiMysteryWords.length]}
+            ने ${hindiActionWords[(index + 1) % hindiActionWords.length]} और
+            ${hindiEmotionWords[(index + 1) % hindiEmotionWords.length]}
+            की मांग की।
+        </p>
+
+        <p>
+            ${event.revelation}। ${hindiDiscoveryWords[index % hindiDiscoveryWords.length]}
+            ${style.mood} की ओर इशारा कर रहा था, लेकिन ${hindiConflictWords[index % hindiConflictWords.length]}
+            ${hindiPlaceModifiers[(index + 1) % hindiPlaceModifiers.length]}
+            छायाओं में छिपा था।
+        </p>
+
+        ${hasSecondCharacter
+                    ? `<p>
+                    ${secondCharacterText} ने पास में ही एक और
+                    ${hindiDiscoveryWords[(index + 1) % hindiDiscoveryWords.length]}
+                    ${hindiActionWords[(index + 2) % hindiActionWords.length]}।
+                    दोनों ने मिलकर ${hindiActionWords[(index + 3) % hindiActionWords.length]}
+                    कि ${hindiMysteryWords[(index + 1) % hindiMysteryWords.length]}
+                    उतना छोटा नहीं था जितना किसी ने ${hindiActionWords[(index + 4) % hindiActionWords.length]}
+                    था।
+                   </p>`
+                    : `<p>
+                    ${firstCharacter} ने पास में ही एक और
+                    ${hindiDiscoveryWords[(index + 1) % hindiDiscoveryWords.length]}
+                    ${hindiActionWords[(index + 2) % hindiActionWords.length]}।
+                    ${hindiMysteryWords[(index + 1) % hindiMysteryWords.length]}
+                    उतना छोटा नहीं था जितना ${firstCharacter} ने
+                    ${hindiActionWords[(index + 4) % hindiActionWords.length]}
+                    था।
+                   </p>`
+                }
+
+        <p>
+            ${hindiTimeWords[(index + 1) % hindiTimeWords.length]}
+            नजदीक आ रहा था। ${hindiConflictWords[(index + 1) % hindiConflictWords.length]}
+            ${hindiPlaceModifiers[(index + 2) % hindiPlaceModifiers.length]}
+            होता जा रहा था, और ${hindiEmotionWords[(index + 2) % hindiEmotionWords.length]}
+            ${hindiPlaceModifiers[(index + 3) % hindiPlaceModifiers.length]}
+            फंदे की तरह कसता जा रहा था।
+        </p>
+    `;
+        }
+
+        /* Reader controls */
+
+        $("previousButton").onclick = () => {
+
+            if (currentChapter > 0) {
+                currentChapter--;
+                renderReader();
+                renderDashboard();
+            }
+        };
+
+        $("nextButton").onclick = () => {
+
+            if (
+                activeNovel &&
+                currentChapter <
+                activeNovel.chapters.length - 1
+            ) {
+                currentChapter++;
+                renderReader();
+                renderDashboard();
+            }
+        };
+
+        $("languageSelect").onchange =
+            () => renderReader();
+
+        $("fontSelect").onchange = event => {
+
+            document.documentElement.style
+                .setProperty(
+                    "--font-size",
+                    event.target.value
+                );
+        };
+
+        $("speakButton").onclick = () => {
+
+            if (speech) {
+
+                speechSynthesis.cancel();
+                speech = null;
+                toast("Reading stopped");
+
+                return;
+            }
+
+            speech =
+                new SpeechSynthesisUtterance(
+                    $("article").innerText
+                );
+
+            speech.lang =
+                $("languageSelect").value === "hi"
+                    ? "hi-IN"
+                    : "en-IN";
+
+            speech.rate = .95;
+
+            speech.onend = () => {
+                speech = null;
+            };
+
+            speechSynthesis.speak(speech);
+        };
+
+        $("exportButton").onclick = () => {
+
+            if (!activeNovel) {
+                return;
+            }
+
+            const hindi =
+                $("languageSelect").value === "hi";
+
+            let output =
+                activeNovel.title + "\n\n";
+
+            activeNovel.chapters.forEach((chapter, index) => {
+
+                const temporary =
+                    document.createElement("div");
+
+                temporary.innerHTML =
+                    hindi
+                        ? chapter.hindi
+                        : chapter.english;
+
+                output +=
+                    "Chapter " +
+                    (index + 1) +
+                    "\n\n" +
+                    temporary.innerText +
+                    "\n\n";
+            });
+
+            const link =
+                document.createElement("a");
+
+            link.href =
+                URL.createObjectURL(
+                    new Blob(
+                        [output],
+                        { type: "text/plain" }
+                    )
+                );
+
+            link.download =
+                activeNovel.title + ".txt";
+
+            link.click();
+        };
+
+        $("bookmarkButton").onclick = () => {
+
+            if (!activeNovel) {
+                return;
+            }
+
+            const chapter =
+                activeNovel.chapters[currentChapter];
+
+            chapter.bookmarked =
+                !chapter.bookmarked;
+
+            saveNovels();
+            renderReader();
+
+            toast(
+                chapter.bookmarked
+                    ? "Chapter bookmarked"
+                    : "Bookmark removed"
+            );
+        };
+
+        $("saveNoteButton").onclick = () => {
+
+            if (!activeNovel) {
+                return;
+            }
+
+            activeNovel.chapters[currentChapter].note =
+                $("noteInput").value;
+
+            saveNovels();
+            toast("Note saved");
+        };
+
+        $("assistantButton").onclick = () => {
+
+            const hindi =
+                $("languageSelect").value === "hi";
+
+            $("assistantAnswer").textContent =
+                hindi
+                    ? "यह अध्याय मुख्य पात्र को रहस्य और अंतिम संघर्ष के करीब ले जाता है।"
+                    : "This chapter moves the main character closer to the central mystery and final conflict.";
+        };
+
+        /* Profile */
+
+        function openProfileModal() {
+
+            const profile =
+                getProfile();
+
+            $("profileNameInput").value =
+                profile.name;
+
+            $("profileGenreInput").value =
+                profile.genre;
+
+            $("profileLanguageInput").value =
+                profile.language;
+
+            $("profileModal")
+                .classList.add("show");
+        }
+
+        $("profileButton").onclick =
+            openProfileModal;
+
+        $("profileButtonSide").onclick =
+            openProfileModal;
+
+        $("closeProfileButton").onclick =
+            () => {
+                $("profileModal")
+                    .classList.remove("show");
+            };
+
+        $("saveProfileButton").onclick =
+            () => {
+
+                const oldProfile =
+                    getProfile();
+
+                const profile = {
+                    id:
+                        oldProfile && oldProfile.id
+                            ? oldProfile.id
+                            : createProfileId(),
+
+                    name:
+                        $("profileNameInput")
+                            .value.trim() || "Reader",
+
+                    genre:
+                        $("profileGenreInput")
+                            .value,
+
+                    language:
+                        $("profileLanguageInput")
+                            .value,
+
+                    createdAt:
+                        oldProfile && oldProfile.createdAt
+                            ? oldProfile.createdAt
+                            : new Date().toISOString()
+                };
+
+                saveProfile(profile);
+
+                activeNovel = null;
+                currentChapter = 0;
+
+                loadNovels();
+
+                if (novels.length > 0) {
+                    activeNovel = novels[0];
+                    currentChapter =
+                        activeNovel.currentChapter || 0;
+                }
+
+                updateProfileDisplay();
+                renderDashboard();
+
+                if (activeNovel) {
+                    renderReader();
+                }
+
+                $("profileModal")
+                    .classList.remove("show");
+
+                toast("Profile saved");
+            };
+
+        $("newProfileButton").onclick =
+            () => {
+
+                const profile = {
+                    id: createProfileId(),
+                    name: "New Reader",
+                    genre: "Fantasy",
+                    language: "en",
+                    createdAt: new Date().toISOString()
+                };
+
+                saveProfile(profile);
+
+                novels = [];
+                activeNovel = null;
+                currentChapter = 0;
+
+                updateProfileDisplay();
+                renderDashboard();
+
+                $("profileModal")
+                    .classList.remove("show");
+
+                toast("New private profile created");
+            };
+
+        /* Theme */
+
+        $("themeButton").onclick =
+            () => {
+
+                const dark =
+                    document.body.classList.contains("dark");
+
+                const sepia =
+                    document.body.classList.contains("sepia");
+
+                document.body.classList.remove("dark");
+                document.body.classList.remove("sepia");
+
+                if (!dark && !sepia) {
+
+                    document.body.classList.add("dark");
+
+                    localStorage.setItem(
+                        THEME_KEY,
+                        "dark"
+                    );
+
+                    toast("Dark theme enabled");
+
+                } else if (dark) {
+
+                    document.body.classList.add("sepia");
+
+                    localStorage.setItem(
+                        THEME_KEY,
+                        "sepia"
+                    );
+
+                    toast("Sepia theme enabled");
+
+                } else {
+
+                    localStorage.setItem(
+                        THEME_KEY,
+                        "light"
+                    );
+
+                    toast("Light theme enabled");
+                }
+            };
+
+        /* Settings */
+
+        $("settingsButton")?.addEventListener(
+            "click",
+            () => {
+                $("settingsModal")
+                    .classList.add("show");
+            }
+        );
+
+        $("closeSettingsButton")?.addEventListener(
+            "click",
+            () => {
+                $("settingsModal")
+                    .classList.remove("show");
+            }
+        );
+
+        $("saveSettingsButton")?.addEventListener(
+            "click",
+            () => {
+
+                const theme =
+                    $("themeInput")
+                        .value;
+
+                document.body.className =
+                    theme === "dark"
+                        ? "dark"
+                        : theme === "sepia"
+                            ? "sepia"
+                            : "";
+
+                localStorage.setItem(
+                    THEME_KEY,
+                    theme
+                );
+
+                $("settingsModal")
+                    .classList.remove("show");
+
+                toast("Settings saved");
+            }
+        );
+
+        /* Initialize application */
+
+        let profile =
+            getProfile();
+
+        if (!profile) {
+
+            profile = {
+                id: createProfileId(),
+                name: "Reader",
+                genre: "Fantasy",
+                language: "en",
+                createdAt: new Date().toISOString()
+            };
+
+            saveProfile(profile);
+        }
+
+        const savedTheme =
+            localStorage.getItem(THEME_KEY);
+
+        if (savedTheme === "dark") {
+            document.body.classList.add("dark");
+        }
+
+        if (savedTheme === "sepia") {
+            document.body.classList.add("sepia");
+        }
+
+        loadNovels();
+
+        updateProfileDisplay();
+
+        renderDashboard();
+
+        if (novels.length > 0) {
+
+            activeNovel = novels[0];
+
+            currentChapter =
+                activeNovel.currentChapter || 0;
+
+            renderReader();
+        }
+    </script>
+
+</body>
+
+</html>
