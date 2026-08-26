@@ -1380,17 +1380,17 @@
   const RENDER_BASE = "https://lunara-quill-novel.onrender.com"; 
   const BACKEND_URL = `${RENDER_BASE.replace(/\/+$/, '')}/api/novels`;
 
-  async function fetchWithWakeup(url, options, maxRetries = 3) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  async function apiFetch(endpoint, options = {}, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const response = await fetch(url, options);
-        return response;
+        const res = await fetch(endpoint, options);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Server status ${res.status}`);
+        return data;
       } catch (err) {
-        if (attempt === maxRetries) throw err;
-        const statusEl = $("generationStatus");
-        if (statusEl) statusEl.textContent = `Waking up cloud AI server (${attempt}/${maxRetries})... please wait ~15s`;
-        toast("Waking up AI backend...");
-        await new Promise(r => setTimeout(r, 10000));
+        if (attempt === retries) throw err;
+        $("generationStatus").textContent = `Retrying API (${attempt}/${retries})...`;
+        await new Promise(r => setTimeout(r, 4000));
       }
     }
   }
@@ -1398,40 +1398,20 @@
   async function apiInitNovel(payload, token = "") {
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const res = await fetchWithWakeup(`${BACKEND_URL}/init`, {
+    return await apiFetch(`${BACKEND_URL}/init`, {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
     });
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      throw new Error(`Server returned non-JSON response (${res.status}). Verify Render URL.`);
-    }
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Server status ${res.status}`);
-    return data;
   }
 
   async function apiGenerateNextChapter(novelId, token = "") {
     const headers = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const res = await fetchWithWakeup(`${BACKEND_URL}/${novelId}/chapters/next`, {
+    return await apiFetch(`${BACKEND_URL}/${novelId}/chapters/next`, {
       method: "POST",
       headers
     });
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      throw new Error(`Server returned non-JSON response (${res.status}). Verify Render URL.`);
-    }
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Server status ${res.status}`);
-    return data;
   }
 
   function escapeHtml(value) {
@@ -1514,7 +1494,7 @@
 
   function renderDashboard() {
     const totalChapters = novels.reduce((sum, n) => sum + (n.chapters ? n.chapters.length : 0), 0);
-    const progress = activeNovel && activeNovel.chapters.length > 0
+    const progress = activeNovel && activeNovel.chapters && activeNovel.chapters.length > 0
       ? Math.round(((currentChapter + 1) / activeNovel.chapters.length) * 100)
       : 0;
 
@@ -1522,7 +1502,7 @@
     $("chapterCount").textContent = totalChapters;
     $("progressCount").textContent = progress + "%";
 
-    if (activeNovel) {
+    if (activeNovel && activeNovel.chapters) {
       $("currentCover").textContent = activeNovel.title;
       $("currentTitle").textContent = activeNovel.title;
       $("currentDescription").textContent = activeNovel.idea;
@@ -1599,7 +1579,7 @@
     const characterNames = activeNovel.leadType === "both" 
       ? `${activeNovel.characterOne} and ${activeNovel.characterTwo}`
       : activeNovel.characterOne;
-    $("characterInfo").textContent = `${characterNames} are the primary actors navigating this chapter.`;
+    $("characterInfo").textContent = `${characterNames} are navigating this storyline.`;
 
     $("noteInput").value = chapter.note || "";
     $("bookmarkButton").textContent = chapter.bookmarked ? "Remove Bookmark" : "Bookmark";
@@ -1639,7 +1619,7 @@
     });
   }
 
-  // Generate All Selected Chapters
+  // Generate All Chapters
   $("generateButton").onclick = async function () {
     const title = $("titleInput").value.trim() || "The Last Lantern";
     const genre = $("genreInput").value;
@@ -1647,16 +1627,16 @@
     const characterTwo = $("characterTwoInput").value.trim() || "Aarav Reed";
     const leadType = $("leadInput").value;
     const idea = $("ideaInput").value.trim() || "A forgotten city appears once every hundred years";
-    const totalChapters = Number($("chapterInput").value) || 5;
+    const totalChapters = parseInt($("chapterInput").value, 10) || 5;
 
     $("generateButton").disabled = true;
-    $("generationStatus").textContent = `Initializing story world & setting up outline...`;
-    toast("Starting novel generation...");
+    $("generationStatus").textContent = `Initializing story framework for ${totalChapters} chapters...`;
+    toast(`Starting ${totalChapters}-chapter novel...`);
 
     try {
       const token = window.currentUserToken || "";
 
-      // 1. Initialize story workspace on backend
+      // 1. Initialize novel outline on server
       const initRes = await apiInitNovel({
         title,
         genre,
@@ -1670,10 +1650,10 @@
       const backendNovelId = initRes.novelId;
       const chapters = [];
 
-      // 2. Loop and generate every chapter sequentially
+      // 2. Generate all chapters sequentially with pacing to respect rate limits
       for (let i = 1; i <= totalChapters; i++) {
-        $("generationStatus").textContent = `Writing Chapter ${i} of ${totalChapters}... Please wait.`;
-        toast(`Writing Chapter ${i}/${totalChapters}...`);
+        $("generationStatus").textContent = `Generating Chapter ${i} of ${totalChapters}... Please wait.`;
+        toast(`Writing Chapter ${i} of ${totalChapters}...`);
 
         const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
 
@@ -1687,6 +1667,11 @@
           note: "",
           bookmarked: false
         });
+
+        // 1.5s delay to keep inference smooth and within TPM quotas
+        if (i < totalChapters) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
 
       const completeNovel = {
@@ -1710,7 +1695,7 @@
       showView($("readerView"));
 
       $("generationStatus").textContent = `All ${totalChapters} chapters generated successfully!`;
-      toast(`Complete novel created (${totalChapters} chapters)!`);
+      toast(`All ${totalChapters} chapters created!`);
     } catch (error) {
       console.error("Novel generation error:", error);
       $("generationStatus").textContent = "Error: " + error.message;
@@ -1739,11 +1724,10 @@
       return;
     }
 
-    // Append extra chapters if at the very end
     const nextNum = activeNovel.chapters.length + 1;
-    if (confirm(`You've finished the novel! Would you like to generate an extra Chapter ${nextNum}?`)) {
+    if (confirm(`You are at the end of the current chapters. Generate an extra Chapter ${nextNum}?`)) {
       $("nextButton").disabled = true;
-      toast(`Writing extra Chapter ${nextNum}...`);
+      toast(`Generating extra Chapter ${nextNum}...`);
 
       try {
         const token = window.currentUserToken || "";
@@ -1827,8 +1811,8 @@
   $("assistantButton").onclick = function () {
     const isHindi = $("languageSelect").value === "hi";
     $("assistantAnswer").textContent = isHindi 
-      ? "यह अध्याय मुख्य पात्रों को रहस्य और मुख्य संघर्ष के और करीब लाता है।"
-      : "This chapter advances the central mystery and deepens the character stakes without repeating previous scenarios.";
+      ? "यह अध्याय कहानी के मुख्य पात्रों और रहस्य को आगे बढ़ाता है।"
+      : "This chapter advances the narrative stakes and character dynamics.";
   };
 
   // Navigations
