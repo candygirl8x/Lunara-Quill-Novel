@@ -1382,7 +1382,7 @@
 
 
         // Ensure base URL has /api/novels appended
-        const RENDER_BASE = "https://lunara-quill-novel.onrender.com"; // <-- Paste your exact Render URL here (without trailing slash)
+        const RENDER_BASE = "https://lunara-quill-novel.onrender.com";
         const BACKEND_URL = `${RENDER_BASE.replace(/\/+$/, '')}/api/novels`;
 
         async function apiInitNovel(payload, token = "") {
@@ -1397,8 +1397,7 @@
 
             const contentType = res.headers.get("content-type") || "";
             if (!contentType.includes("application/json")) {
-                const rawText = await res.text();
-                throw new Error(`Server returned HTML error (${res.status}). Check backend URL.`);
+                throw new Error(`Server returned status ${res.status}. Verify BACKEND_URL.`);
             }
 
             const data = await res.json();
@@ -1417,8 +1416,7 @@
 
             const contentType = res.headers.get("content-type") || "";
             if (!contentType.includes("application/json")) {
-                const rawText = await res.text();
-                throw new Error(`Server returned HTML error (${res.status}). Check backend URL.`);
+                throw new Error(`Server returned status ${res.status}. Verify BACKEND_URL.`);
             }
 
             const data = await res.json();
@@ -2513,18 +2511,16 @@
             const characterTwo = characterTwoInput.value.trim() || "Aarav Reed";
             const leadType = leadInput.value;
             const idea = ideaInput.value.trim() || "A forgotten city appears once every hundred years";
-
-            // Dynamically picks 3, 5, 7, 10, 15, or 20 chapters based on user selection
             const totalChapters = Number(chapterInput.value) || 5;
 
             generateButton.disabled = true;
-            generationStatus.textContent = `Architecting world for ${totalChapters}-chapter novel...`;
-            toast(`Building universe for ${totalChapters} chapters...`);
+            generationStatus.textContent = `Connecting to AI server & generating Chapter 1 of ${totalChapters}...`;
+            toast("Generating unique chapter...");
 
             try {
                 const token = window.currentUserToken || "";
 
-                // Step 1: Initialize novel with target totalChapters on backend
+                // 1. Initialize novel on backend
                 const initRes = await apiInitNovel({
                     title,
                     genre,
@@ -2536,29 +2532,10 @@
                 }, token);
 
                 const backendNovelId = initRes.novelId;
-                const allChapters = [];
 
-                // Step 2: Loop through every selected chapter (up to 20)
-                for (let i = 1; i <= totalChapters; i++) {
-                    const percent = Math.round(((i - 1) / totalChapters) * 100);
-                    generationStatus.textContent = `[${percent}%] Writing Chapter ${i} of ${totalChapters} (Tracking continuity & anti-repetition)...`;
-                    toast(`Generating Chapter ${i}/${totalChapters}...`);
+                // 2. Generate Chapter 1 with anti-repetition check
+                const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
 
-                    const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
-
-                    allChapters.push({
-                        title: chapterRes.chapter.title || `Chapter ${i}`,
-                        english: `<p>${chapterRes.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
-                        hindi: `<p>${chapterRes.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
-                        summary: chapterRes.chapter.summary,
-                        dominantEmotion: chapterRes.chapter.dominantEmotion,
-                        timeSetting: chapterRes.chapter.timeSetting,
-                        note: "",
-                        bookmarked: false
-                    });
-                }
-
-                // Step 3: Bundle all generated chapters into novel object
                 const completeNovel = {
                     id: backendNovelId,
                     title: title,
@@ -2568,10 +2545,20 @@
                     leadType: leadType,
                     idea: idea,
                     currentChapter: 0,
-                    chapters: allChapters
+                    chapters: [
+                        {
+                            title: chapterRes.chapter.title || "Chapter 1",
+                            english: `<p>${chapterRes.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
+                            hindi: `<p>${chapterRes.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
+                            summary: chapterRes.chapter.summary,
+                            dominantEmotion: chapterRes.chapter.dominantEmotion,
+                            timeSetting: chapterRes.chapter.timeSetting,
+                            note: "",
+                            bookmarked: false
+                        }
+                    ]
                 };
 
-                // Step 4: Save to your shelf and open the Reader
                 novels.unshift(completeNovel);
                 activeNovel = completeNovel;
                 currentChapter = 0;
@@ -2580,8 +2567,8 @@
                 renderReader();
                 showView(readerView);
 
-                generationStatus.textContent = `Completed! All ${totalChapters} chapters generated.`;
-                toast(`${totalChapters}-Chapter Novel Complete!`);
+                generationStatus.textContent = "Chapter 1 generated successfully!";
+                toast("Chapter 1 ready!");
             } catch (error) {
                 console.error("Novel generation error:", error);
                 generationStatus.textContent = "Error: " + error.message;
@@ -2590,6 +2577,7 @@
                 generateButton.disabled = false;
             }
         };
+
         function createChapter(
             characterOne,
             characterTwo,
