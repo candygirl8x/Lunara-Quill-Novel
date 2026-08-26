@@ -1379,6 +1379,38 @@
                 $("toast").classList.remove("show");
             }, 2300);
         }
+        const BACKEND_URL = "http://localhost:5000/api/novels";
+
+        // 1. Initialize novel on the backend
+        async function apiInitNovel(payload, token = "") {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const res = await fetch(`${BACKEND_URL}/init`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to initialize novel on backend.");
+            return data;
+        }
+
+        // 2. Generate next dynamic chapter
+        async function apiGenerateNextChapter(novelId, token = "") {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const res = await fetch(`${BACKEND_URL}/${novelId}/chapters/next`, {
+                method: "POST",
+                headers
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to generate chapter.");
+            return data;
+        }
 
         function escapeHtml(value) {
             return String(value)
@@ -2460,34 +2492,91 @@
         /* Create novel */
 
 
-        $("generateButton").onclick = () => {
+        // New AI Backend Handler
+        generateButton.onclick = async function () {
+            const title = titleInput.value.trim() || "The Last Lantern";
+            const genre = genreInput.value;
+            const characterOne = characterOneInput.value.trim() || "Mira Vale";
+            const characterTwo = characterTwoInput.value.trim() || "Aarav Reed";
+            const leadType = leadInput.value;
+            const idea = ideaInput.value.trim() || "A forgotten city appears once every hundred years";
+
+            // Dynamically picks 3, 5, 7, 10, 15, or 20 chapters based on user selection
+            const totalChapters = Number(chapterInput.value) || 5;
+
+            generateButton.disabled = true;
+            generationStatus.textContent = `Architecting world for ${totalChapters}-chapter novel...`;
+            toast(`Building universe for ${totalChapters} chapters...`);
+
             try {
-                const novel = generateNovelData();
+                const token = window.currentUserToken || "";
 
-                novels.unshift(novel);
-                activeNovel = novel;
+                // Step 1: Initialize novel with target totalChapters on backend
+                const initRes = await apiInitNovel({
+                    title,
+                    genre,
+                    characterOne,
+                    characterTwo,
+                    leadType,
+                    idea,
+                    totalChapters
+                }, token);
+
+                const backendNovelId = initRes.novelId;
+                const allChapters = [];
+
+                // Step 2: Loop through every selected chapter (up to 20)
+                for (let i = 1; i <= totalChapters; i++) {
+                    const percent = Math.round(((i - 1) / totalChapters) * 100);
+                    generationStatus.textContent = `[${percent}%] Writing Chapter ${i} of ${totalChapters} (Tracking continuity & anti-repetition)...`;
+                    toast(`Generating Chapter ${i}/${totalChapters}...`);
+
+                    const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
+
+                    allChapters.push({
+                        title: chapterRes.chapter.title || `Chapter ${i}`,
+                        english: `<p>${chapterRes.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
+                        hindi: `<p>${chapterRes.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
+                        summary: chapterRes.chapter.summary,
+                        dominantEmotion: chapterRes.chapter.dominantEmotion,
+                        timeSetting: chapterRes.chapter.timeSetting,
+                        note: "",
+                        bookmarked: false
+                    });
+                }
+
+                // Step 3: Bundle all generated chapters into novel object
+                const completeNovel = {
+                    id: backendNovelId,
+                    title: title,
+                    genre: genre,
+                    characterOne: characterOne,
+                    characterTwo: characterTwo,
+                    leadType: leadType,
+                    idea: idea,
+                    currentChapter: 0,
+                    chapters: allChapters
+                };
+
+                // Step 4: Save to your shelf and open the Reader
+                novels.unshift(completeNovel);
+                activeNovel = completeNovel;
                 currentChapter = 0;
-
                 saveNovels();
                 renderDashboard();
                 renderReader();
-                showView("readerView");
+                showView(readerView);
 
-                $("generationStatus").textContent =
-                    "Novel generated successfully.";
-
-                toast("Novel created");
+                generationStatus.textContent = `Completed! All ${totalChapters} chapters generated.`;
+                toast(`${totalChapters}-Chapter Novel Complete!`);
             } catch (error) {
                 console.error("Novel generation error:", error);
-
-                $("generationStatus").textContent =
-                    "Error: " + error.message;
-
-                toast("Novel create nahi ho paya");
+                generationStatus.textContent = "Error: " + error.message;
+                toast("Failed: " + error.message);
+            } finally {
+                generateButton.disabled = false;
             }
         };
-
-
         function createChapter(
             characterOne,
             characterTwo,
@@ -3080,16 +3169,61 @@
             }
         };
 
-        $("nextButton").onclick = () => {
+        // Reader controls
+        previousButton.onclick = function () {
+            if (currentChapter > 0) {
+                currentChapter--;
+                renderReader();
+                renderDashboard();
+            }
+        };
 
-            if (
-                activeNovel &&
-                currentChapter <
-                activeNovel.chapters.length - 1
-            ) {
+        nextButton.onclick = async function () {
+            if (!activeNovel) return;
+
+            // 1. If the next chapter already exists in memory, navigate forward
+            if (currentChapter < activeNovel.chapters.length - 1) {
                 currentChapter++;
                 renderReader();
                 renderDashboard();
+                return;
+            }
+
+            // 2. If at the end of generated chapters, ask to generate the next one via Backend API
+            const totalWritten = activeNovel.chapters.length;
+            const shouldGenerate = confirm(`Generate Chapter ${totalWritten + 1} with a unique setting, emotion, and timeline?`);
+
+            if (shouldGenerate) {
+                nextButton.disabled = true;
+                toast(`Architecting Chapter ${totalWritten + 1}...`);
+
+                try {
+                    const token = window.currentUserToken || "";
+                    const res = await apiGenerateNextChapter(activeNovel.id, token);
+
+                    activeNovel.chapters.push({
+                        title: res.chapter.title || `Chapter ${res.chapterNumber}`,
+                        english: `<p>${res.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
+                        hindi: `<p>${res.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
+                        summary: res.chapter.summary,
+                        dominantEmotion: res.chapter.dominantEmotion,
+                        timeSetting: res.chapter.timeSetting,
+                        note: "",
+                        bookmarked: false
+                    });
+
+                    currentChapter++;
+                    activeNovel.currentChapter = currentChapter;
+                    saveNovels();
+                    renderReader();
+                    renderDashboard();
+                    toast(`Chapter ${res.chapterNumber} created!`);
+                } catch (err) {
+                    console.error(err);
+                    alert("Error generating next chapter: " + err.message);
+                } finally {
+                    nextButton.disabled = false;
+                }
             }
         };
 
