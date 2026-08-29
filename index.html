@@ -256,6 +256,7 @@
             border: 1px solid #ffffff24;
             border-radius: 21px;
             background: #ffffff12;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
         }
 
@@ -396,6 +397,10 @@
         .noble-panel h3 {
             margin: 0 0 14px;
             font: 21px Georgia, serif;
+        }
+
+        .noble-panel.recent-stories {
+            margin-top: 21px;
         }
 
         .noble-quote {
@@ -556,6 +561,10 @@
             flex-wrap: wrap;
             gap: 8px;
             margin-top: 18px;
+        }
+
+        .button-row.no-margin {
+            margin-top: 0;
         }
 
         .cards {
@@ -988,15 +997,15 @@
 
                     </div>
 
-                    <div class="noble-panel" style="margin-top:21px">
+                    <div class="noble-panel recent-stories-panel"></div>
 
-                        <h3>Recently Created Stories</h3>
+                    <h3>Recently Created Stories</h3>
 
-                        <div class="cards" id="recentGrid"></div>
-
-                    </div>
+                    <div class="cards" id="recentGrid"></div>
 
                 </div>
+
+            </div>
 
             </div>
 
@@ -1095,14 +1104,14 @@
                     Novel Reader
                 </h2>
 
-                <div class="button-row" style="margin-top:0">
+                <div class="button-row" class="button-row reader-toolbar">
 
-                    <select id="languageSelect" style="width:auto">
+                    <select id="languageSelect" class="auto-width-select">
                         <option value="en">English</option>
                         <option value="hi">हिन्दी</option>
                     </select>
 
-                    <select id="fontSelect" style="width:auto">
+                    <select id="fontSelect" class="auto-width-select">
                         <option value="19px">Normal</option>
                         <option value="22px">Large</option>
                         <option value="26px">Extra Large</option>
@@ -1130,7 +1139,7 @@
 
                     <div class="small-text" id="chapterInfo"></div>
 
-                    <div class="progress-track" style="margin-top:20px">
+                    <div class="progress-track reader-progress-track">
 
                         <div class="progress-fill" id="readerProgress"></div>
 
@@ -1209,7 +1218,7 @@
                     <h3>Chapters</h3>
                     <div id="chapterList"></div>
 
-                    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+                    <hr class="sidebar-divider">
 
                     <h3>Bookmarks</h3>
                     <div id="bookmarkList"></div>
@@ -1355,592 +1364,593 @@
     <div class="toast" id="toast"></div>
 
     <script>
-  const PROFILE_KEY = "lunara_quill_profile";
-  const OLD_NOVELS_KEY = "lunara_quill_novels";
-  const THEME_KEY = "lunara_quill_theme";
+        const PROFILE_KEY = "lunara_quill_profile";
+        const OLD_NOVELS_KEY = "lunara_quill_novels";
+        const THEME_KEY = "lunara_quill_theme";
 
-  let novels = [];
-  let activeNovel = null;
-  let currentChapter = 0;
-  let speech = null;
+        let novels = [];
+        let activeNovel = null;
+        let currentChapter = 0;
+        let speech = null;
 
-  const $ = (id) => document.getElementById(id);
+        const $ = (id) => document.getElementById(id);
 
-  function toast(message) {
-    const toastEl = $("toast");
-    if (!toastEl) return;
-    toastEl.textContent = message;
-    toastEl.classList.add("show");
-    setTimeout(() => {
-      toastEl.classList.remove("show");
-    }, 2500);
-  }
+        function toast(message) {
+            const toastEl = $("toast");
+            if (!toastEl) return;
+            toastEl.textContent = message;
+            toastEl.classList.add("show");
+            setTimeout(() => {
+                toastEl.classList.remove("show");
+            }, 2500);
+        }
 
-  // Cloud API Connector
-  const RENDER_BASE = "https://lunara-quill-novel.onrender.com"; 
-  const BACKEND_URL = `${RENDER_BASE.replace(/\/+$/, '')}/api/novels`;
+        // Cloud API Connector
+        const RENDER_BASE = "https://lunara-quill-novel.onrender.com";
+        const BACKEND_URL = `${RENDER_BASE.replace(/\/+$/, '')}/api/novels`;
 
-  async function apiFetch(endpoint, options = {}, retries = 3) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        const res = await fetch(endpoint, options);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Server status ${res.status}`);
-        return data;
-      } catch (err) {
-        if (attempt === retries) throw err;
-        $("generationStatus").textContent = `Retrying API (${attempt}/${retries})...`;
-        await new Promise(r => setTimeout(r, 4000));
-      }
-    }
-  }
+        async function apiFetch(endpoint, options = {}, retries = 3) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const res = await fetch(endpoint, options);
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || `Server status ${res.status}`);
+                    return data;
+                } catch (err) {
+                    if (attempt === retries) throw err;
+                    $("generationStatus").textContent = `Retrying API (${attempt}/${retries})...`;
+                    await new Promise(r => setTimeout(r, 4000));
+                }
+            }
+        }
 
-  async function apiInitNovel(payload, token = "") {
-    const headers = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    return await apiFetch(`${BACKEND_URL}/init`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-  }
+        async function apiInitNovel(payload, token = "") {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            return await apiFetch(`${BACKEND_URL}/init`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(payload)
+            });
+        }
 
-  async function apiGenerateNextChapter(novelId, token = "") {
-    const headers = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    return await apiFetch(`${BACKEND_URL}/${novelId}/chapters/next`, {
-      method: "POST",
-      headers
-    });
-  }
+        async function apiGenerateNextChapter(novelId, token = "") {
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+            return await apiFetch(`${BACKEND_URL}/${novelId}/chapters/next`, {
+                method: "POST",
+                headers
+            });
+        }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
-  function createProfileId() {
-    if (window.crypto && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-    return "profile_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8);
-  }
+        function createProfileId() {
+            if (window.crypto && typeof crypto.randomUUID === "function") {
+                return crypto.randomUUID();
+            }
+            return "profile_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8);
+        }
 
-  function getProfile() {
-    try {
-      return JSON.parse(localStorage.getItem(PROFILE_KEY)) || null;
-    } catch {
-      return null;
-    }
-  }
+        function getProfile() {
+            try {
+                return JSON.parse(localStorage.getItem(PROFILE_KEY)) || null;
+            } catch {
+                return null;
+            }
+        }
 
-  function saveProfile(profile) {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  }
+        function saveProfile(profile) {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        }
 
-  function getProfileId() {
-    const profile = getProfile();
-    return profile ? profile.id : null;
-  }
+        function getProfileId() {
+            const profile = getProfile();
+            return profile ? profile.id : null;
+        }
 
-  function getPrivateNovelKey() {
-    const profileId = getProfileId();
-    if (!profileId) return null;
-    return `${OLD_NOVELS_KEY}_${profileId}`;
-  }
+        function getPrivateNovelKey() {
+            const profileId = getProfileId();
+            if (!profileId) return null;
+            return `${OLD_NOVELS_KEY}_${profileId}`;
+        }
 
-  function loadNovels() {
-    const privateKey = getPrivateNovelKey();
-    if (!privateKey) {
-      novels = [];
-      return;
-    }
-    try {
-      novels = JSON.parse(localStorage.getItem(privateKey)) || [];
-    } catch {
-      novels = [];
-    }
-  }
+        function loadNovels() {
+            const privateKey = getPrivateNovelKey();
+            if (!privateKey) {
+                novels = [];
+                return;
+            }
+            try {
+                novels = JSON.parse(localStorage.getItem(privateKey)) || [];
+            } catch {
+                novels = [];
+            }
+        }
 
-  function saveNovels() {
-    const privateKey = getPrivateNovelKey();
-    if (!privateKey) {
-      toast("Create a profile first");
-      return;
-    }
-    localStorage.setItem(privateKey, JSON.stringify(novels));
-  }
+        function saveNovels() {
+            const privateKey = getPrivateNovelKey();
+            if (!privateKey) {
+                toast("Create a profile first");
+                return;
+            }
+            localStorage.setItem(privateKey, JSON.stringify(novels));
+        }
 
-  function showView(viewElement) {
-    [$("dashboardView"), $("createView"), $("readerView"), $("libraryView")].forEach((v) => {
-      if (v) v.style.display = "none";
-    });
-    if (viewElement) viewElement.style.display = "block";
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+        function showView(viewElement) {
+            [$("dashboardView"), $("createView"), $("readerView"), $("libraryView")].forEach((v) => {
+                if (v) v.style.display = "none";
+            });
+            if (viewElement) viewElement.style.display = "block";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
 
-  function updateProfileDisplay() {
-    const profile = getProfile();
-    if (!profile) return;
-    $("profileName").textContent = profile.name;
-    $("profileAvatar").textContent = profile.name.charAt(0).toUpperCase();
-    $("profileInfo").textContent = (profile.language === "hi" ? "हिंदी" : "English") + " · " + profile.genre;
-    $("welcomeTitle").textContent = "Good evening, " + profile.name;
-  }
+        function updateProfileDisplay() {
+            const profile = getProfile();
+            if (!profile) return;
+            $("profileName").textContent = profile.name;
+            $("profileAvatar").textContent = profile.name.charAt(0).toUpperCase();
+            $("profileInfo").textContent = (profile.language === "hi" ? "हिंदी" : "English") + " · " + profile.genre;
+            $("welcomeTitle").textContent = "Good evening, " + profile.name;
+        }
 
-  function renderDashboard() {
-    const totalChapters = novels.reduce((sum, n) => sum + (n.chapters ? n.chapters.length : 0), 0);
-    const progress = activeNovel && activeNovel.chapters && activeNovel.chapters.length > 0
-      ? Math.round(((currentChapter + 1) / activeNovel.chapters.length) * 100)
-      : 0;
+        function renderDashboard() {
+            const totalChapters = novels.reduce((sum, n) => sum + (n.chapters ? n.chapters.length : 0), 0);
+            const progress = activeNovel && activeNovel.chapters && activeNovel.chapters.length > 0
+                ? Math.round(((currentChapter + 1) / activeNovel.chapters.length) * 100)
+                : 0;
 
-    $("novelCount").textContent = novels.length;
-    $("chapterCount").textContent = totalChapters;
-    $("progressCount").textContent = progress + "%";
+            $("novelCount").textContent = novels.length;
+            $("chapterCount").textContent = totalChapters;
+            $("progressCount").textContent = progress + "%";
 
-    if (activeNovel && activeNovel.chapters) {
-      $("currentCover").textContent = activeNovel.title;
-      $("currentTitle").textContent = activeNovel.title;
-      $("currentDescription").textContent = activeNovel.idea;
-      $("currentMeta").textContent = `${activeNovel.genre} · ${activeNovel.chapters.length} chapters`;
-      $("currentProgress").style.width = progress + "%";
-      $("currentPercent").textContent = progress + "% complete";
-      $("currentChapter").textContent = "Chapter " + (currentChapter + 1);
-    }
-    renderNovelCards();
-  }
+            if (activeNovel && activeNovel.chapters) {
+                $("currentCover").textContent = activeNovel.title;
+                $("currentTitle").textContent = activeNovel.title;
+                $("currentDescription").textContent = activeNovel.idea;
+                $("currentMeta").textContent = `${activeNovel.genre} · ${activeNovel.chapters.length} chapters`;
+                $("currentProgress").style.width = progress + "%";
+                $("currentPercent").textContent = progress + "% complete";
+                $("currentChapter").textContent = "Chapter " + (currentChapter + 1);
+            }
+            renderNovelCards();
+        }
 
-  function renderNovelCards() {
-    const recentGrid = $("recentGrid");
-    const libraryGrid = $("libraryGrid");
-    if (recentGrid) recentGrid.innerHTML = "";
-    if (libraryGrid) libraryGrid.innerHTML = "";
+        function renderNovelCards() {
+            const recentGrid = $("recentGrid");
+            const libraryGrid = $("libraryGrid");
+            if (recentGrid) recentGrid.innerHTML = "";
+            if (libraryGrid) libraryGrid.innerHTML = "";
 
-    novels.forEach((novel) => {
-      [recentGrid, libraryGrid].forEach((grid) => {
-        if (!grid) return;
-        const card = document.createElement("div");
-        card.className = "novel-card";
-        card.innerHTML = `
+            novels.forEach((novel) => {
+                [recentGrid, libraryGrid].forEach((grid) => {
+                    if (!grid) return;
+                    const card = document.createElement("div");
+                    card.className = "novel-card";
+                    card.innerHTML = `
           <div class="novel-cover">${escapeHtml(novel.title)}</div>
           <h3>${escapeHtml(novel.title)}</h3>
           <p>${escapeHtml(novel.genre)} · ${(novel.chapters || []).length} chapters</p>
           <button class="delete-button">Delete Novel</button>
         `;
-        card.onclick = (event) => {
-          if (event.target.classList.contains("delete-button")) {
-            deleteNovel(novel.id);
-            return;
-          }
-          activeNovel = novel;
-          currentChapter = novel.currentChapter || 0;
-          renderReader();
-          showView($("readerView"));
-        };
-        grid.appendChild(card);
-      });
-    });
+                    card.onclick = (event) => {
+                        if (event.target.classList.contains("delete-button")) {
+                            deleteNovel(novel.id);
+                            return;
+                        }
+                        activeNovel = novel;
+                        currentChapter = novel.currentChapter || 0;
+                        renderReader();
+                        showView($("readerView"));
+                    };
+                    grid.appendChild(card);
+                });
+            });
 
-    const libraryCount = $("libraryCount");
-    if (libraryCount) libraryCount.textContent = `${novels.length} novel${novels.length === 1 ? "" : "s"}`;
-  }
-
-  function deleteNovel(novelId) {
-    const novel = novels.find((n) => n.id === novelId);
-    if (!novel || !confirm(`Delete "${novel.title}" permanently?`)) return;
-
-    novels = novels.filter((n) => n.id !== novelId);
-    saveNovels();
-
-    if (activeNovel && activeNovel.id === novelId) {
-      activeNovel = novels[0] || null;
-      currentChapter = 0;
-    }
-    renderDashboard();
-    toast("Novel deleted");
-  }
-
-  function renderReader() {
-    if (!activeNovel || !activeNovel.chapters || activeNovel.chapters.length === 0) return;
-    const chapter = activeNovel.chapters[currentChapter] || activeNovel.chapters[0];
-    const isHindi = $("languageSelect").value === "hi";
-
-    $("readerTitle").textContent = activeNovel.title;
-    $("chapterTitle").textContent = isHindi ? `अध्याय ${currentChapter + 1}: ${chapter.title}` : chapter.title;
-    $("chapterInfo").textContent = `${activeNovel.genre} · Chapter ${currentChapter + 1} of ${activeNovel.chapters.length}`;
-    
-    $("article").innerHTML = isHindi ? (chapter.hindi || chapter.english) : (chapter.english || chapter.hindi);
-    $("chapterSummary").textContent = chapter.summary || "This chapter develops the story conflict and character dynamics.";
-
-    const characterNames = activeNovel.leadType === "both" 
-      ? `${activeNovel.characterOne} and ${activeNovel.characterTwo}`
-      : activeNovel.characterOne;
-    $("characterInfo").textContent = `${characterNames} are navigating this storyline.`;
-
-    $("noteInput").value = chapter.note || "";
-    $("bookmarkButton").textContent = chapter.bookmarked ? "Remove Bookmark" : "Bookmark";
-    $("readerProgress").style.width = Math.round(((currentChapter + 1) / activeNovel.chapters.length) * 100) + "%";
-
-    $("previousButton").disabled = currentChapter === 0;
-    $("nextButton").disabled = false;
-
-    const chapterList = $("chapterList");
-    chapterList.innerHTML = "";
-    activeNovel.chapters.forEach((item, index) => {
-      const btn = document.createElement("button");
-      btn.className = `chapter-button ${index === currentChapter ? "active" : ""}`;
-      btn.textContent = `Chapter ${index + 1}: ${item.title}`;
-      btn.onclick = () => {
-        currentChapter = index;
-        activeNovel.currentChapter = index;
-        saveNovels();
-        renderReader();
-      };
-      chapterList.appendChild(btn);
-    });
-
-    const bookmarkList = $("bookmarkList");
-    bookmarkList.innerHTML = "";
-    activeNovel.chapters.forEach((item, index) => {
-      if (item.bookmarked) {
-        const btn = document.createElement("button");
-        btn.className = "chapter-button";
-        btn.textContent = `Bookmark: Chapter ${index + 1}`;
-        btn.onclick = () => {
-          currentChapter = index;
-          renderReader();
-        };
-        bookmarkList.appendChild(btn);
-      }
-    });
-  }
-
-  // Generate All Chapters
-  $("generateButton").onclick = async function () {
-    const title = $("titleInput").value.trim() || "The Last Lantern";
-    const genre = $("genreInput").value;
-    const characterOne = $("characterOneInput").value.trim() || "Mira Vale";
-    const characterTwo = $("characterTwoInput").value.trim() || "Aarav Reed";
-    const leadType = $("leadInput").value;
-    const idea = $("ideaInput").value.trim() || "A forgotten city appears once every hundred years";
-    const totalChapters = parseInt($("chapterInput").value, 10) || 5;
-
-    $("generateButton").disabled = true;
-    $("generationStatus").textContent = `Initializing story framework for ${totalChapters} chapters...`;
-    toast(`Starting ${totalChapters}-chapter novel...`);
-
-    try {
-      const token = window.currentUserToken || "";
-
-      // 1. Initialize novel outline on server
-      const initRes = await apiInitNovel({
-        title,
-        genre,
-        characterOne,
-        characterTwo,
-        leadType,
-        idea,
-        totalChapters
-      }, token);
-
-      const backendNovelId = initRes.novelId;
-      const chapters = [];
-
-      // 2. Generate all chapters sequentially with pacing to respect rate limits
-      for (let i = 1; i <= totalChapters; i++) {
-        $("generationStatus").textContent = `Generating Chapter ${i} of ${totalChapters}... Please wait.`;
-        toast(`Writing Chapter ${i} of ${totalChapters}...`);
-
-        const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
-
-        chapters.push({
-          title: chapterRes.chapter.title || `Chapter ${i}`,
-          english: `<p>${chapterRes.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
-          hindi: `<p>${chapterRes.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
-          summary: chapterRes.chapter.summary,
-          dominantEmotion: chapterRes.chapter.dominantEmotion,
-          timeSetting: chapterRes.chapter.timeSetting,
-          note: "",
-          bookmarked: false
-        });
-
-        // 1.5s delay to keep inference smooth and within TPM quotas
-        if (i < totalChapters) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+            const libraryCount = $("libraryCount");
+            if (libraryCount) libraryCount.textContent = `${novels.length} novel${novels.length === 1 ? "" : "s"}`;
         }
-      }
 
-      const completeNovel = {
-        id: backendNovelId,
-        title: title,
-        genre: genre,
-        characterOne: characterOne,
-        characterTwo: characterTwo,
-        leadType: leadType,
-        idea: idea,
-        currentChapter: 0,
-        chapters: chapters
-      };
+        function deleteNovel(novelId) {
+            const novel = novels.find((n) => n.id === novelId);
+            if (!novel || !confirm(`Delete "${novel.title}" permanently?`)) return;
 
-      novels.unshift(completeNovel);
-      activeNovel = completeNovel;
-      currentChapter = 0;
-      saveNovels();
-      renderDashboard();
-      renderReader();
-      showView($("readerView"));
+            novels = novels.filter((n) => n.id !== novelId);
+            saveNovels();
 
-      $("generationStatus").textContent = `All ${totalChapters} chapters generated successfully!`;
-      toast(`All ${totalChapters} chapters created!`);
-    } catch (error) {
-      console.error("Novel generation error:", error);
-      $("generationStatus").textContent = "Error: " + error.message;
-      toast("Failed: " + error.message);
-    } finally {
-      $("generateButton").disabled = false;
-    }
-  };
+            if (activeNovel && activeNovel.id === novelId) {
+                activeNovel = novels[0] || null;
+                currentChapter = 0;
+            }
+            renderDashboard();
+            toast("Novel deleted");
+        }
 
-  // Reader Controls
-  $("previousButton").onclick = function () {
-    if (currentChapter > 0) {
-      currentChapter--;
-      renderReader();
-      renderDashboard();
-    }
-  };
+        function renderReader() {
+            if (!activeNovel || !activeNovel.chapters || activeNovel.chapters.length === 0) return;
+            const chapter = activeNovel.chapters[currentChapter] || activeNovel.chapters[0];
+            const isHindi = $("languageSelect").value === "hi";
 
-  $("nextButton").onclick = async function () {
-    if (!activeNovel) return;
+            $("readerTitle").textContent = activeNovel.title;
+            $("chapterTitle").textContent = isHindi ? `अध्याय ${currentChapter + 1}: ${chapter.title}` : chapter.title;
+            $("chapterInfo").textContent = `${activeNovel.genre} · Chapter ${currentChapter + 1} of ${activeNovel.chapters.length}`;
 
-    if (currentChapter < activeNovel.chapters.length - 1) {
-      currentChapter++;
-      renderReader();
-      renderDashboard();
-      return;
-    }
+            $("article").innerHTML = isHindi ? (chapter.hindi || chapter.english) : (chapter.english || chapter.hindi);
+            $("chapterSummary").textContent = chapter.summary || "This chapter develops the story conflict and character dynamics.";
 
-    const nextNum = activeNovel.chapters.length + 1;
-    if (confirm(`You are at the end of the current chapters. Generate an extra Chapter ${nextNum}?`)) {
-      $("nextButton").disabled = true;
-      toast(`Generating extra Chapter ${nextNum}...`);
+            const characterNames = activeNovel.leadType === "both"
+                ? `${activeNovel.characterOne} and ${activeNovel.characterTwo}`
+                : activeNovel.characterOne;
+            $("characterInfo").textContent = `${characterNames} are navigating this storyline.`;
 
-      try {
-        const token = window.currentUserToken || "";
-        const res = await apiGenerateNextChapter(activeNovel.id, token);
+            $("noteInput").value = chapter.note || "";
+            $("bookmarkButton").textContent = chapter.bookmarked ? "Remove Bookmark" : "Bookmark";
+            $("readerProgress").style.width = Math.round(((currentChapter + 1) / activeNovel.chapters.length) * 100) + "%";
 
-        activeNovel.chapters.push({
-          title: res.chapter.title || `Chapter ${res.chapterNumber}`,
-          english: `<p>${res.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
-          hindi: `<p>${res.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
-          summary: res.chapter.summary,
-          dominantEmotion: res.chapter.dominantEmotion,
-          timeSetting: res.chapter.timeSetting,
-          note: "",
-          bookmarked: false
-        });
+            $("previousButton").disabled = currentChapter === 0;
+            $("nextButton").disabled = false;
 
-        currentChapter++;
-        activeNovel.currentChapter = currentChapter;
-        saveNovels();
-        renderReader();
+            const chapterList = $("chapterList");
+            chapterList.innerHTML = "";
+            activeNovel.chapters.forEach((item, index) => {
+                const btn = document.createElement("button");
+                btn.className = `chapter-button ${index === currentChapter ? "active" : ""}`;
+                btn.textContent = `Chapter ${index + 1}: ${item.title}`;
+                btn.onclick = () => {
+                    currentChapter = index;
+                    activeNovel.currentChapter = index;
+                    saveNovels();
+                    renderReader();
+                };
+                chapterList.appendChild(btn);
+            });
+
+            const bookmarkList = $("bookmarkList");
+            bookmarkList.innerHTML = "";
+            activeNovel.chapters.forEach((item, index) => {
+                if (item.bookmarked) {
+                    const btn = document.createElement("button");
+                    btn.className = "chapter-button";
+                    btn.textContent = `Bookmark: Chapter ${index + 1}`;
+                    btn.onclick = () => {
+                        currentChapter = index;
+                        renderReader();
+                    };
+                    bookmarkList.appendChild(btn);
+                }
+            });
+        }
+
+        // Generate All Chapters
+        $("generateButton").onclick = async function () {
+            const title = $("titleInput").value.trim() || "The Last Lantern";
+            const genre = $("genreInput").value;
+            const characterOne = $("characterOneInput").value.trim() || "Mira Vale";
+            const characterTwo = $("characterTwoInput").value.trim() || "Aarav Reed";
+            const leadType = $("leadInput").value;
+            const idea = $("ideaInput").value.trim() || "A forgotten city appears once every hundred years";
+            const totalChapters = parseInt($("chapterInput").value, 10) || 5;
+
+            $("generateButton").disabled = true;
+            $("generationStatus").textContent = `Initializing story framework for ${totalChapters} chapters...`;
+            toast(`Starting ${totalChapters}-chapter novel...`);
+
+            try {
+                const token = window.currentUserToken || "";
+
+                // 1. Initialize novel outline on server
+                const initRes = await apiInitNovel({
+                    title,
+                    genre,
+                    characterOne,
+                    characterTwo,
+                    leadType,
+                    idea,
+                    totalChapters
+                }, token);
+
+                const backendNovelId = initRes.novelId;
+                const chapters = [];
+
+                // 2. Generate all chapters sequentially with pacing to respect rate limits
+                for (let i = 1; i <= totalChapters; i++) {
+                    $("generationStatus").textContent = `Generating Chapter ${i} of ${totalChapters}... Please wait.`;
+                    toast(`Writing Chapter ${i} of ${totalChapters}...`);
+
+                    const chapterRes = await apiGenerateNextChapter(backendNovelId, token);
+
+                    chapters.push({
+                        title: chapterRes.chapter.title || `Chapter ${i}`,
+                        english: `<p>${chapterRes.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
+                        hindi: `<p>${chapterRes.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
+                        summary: chapterRes.chapter.summary,
+                        dominantEmotion: chapterRes.chapter.dominantEmotion,
+                        timeSetting: chapterRes.chapter.timeSetting,
+                        note: "",
+                        bookmarked: false
+                    });
+
+                    // 1.5s delay to keep inference smooth and within TPM quotas
+                    if (i < totalChapters) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                }
+
+                const completeNovel = {
+                    id: backendNovelId,
+                    title: title,
+                    genre: genre,
+                    characterOne: characterOne,
+                    characterTwo: characterTwo,
+                    leadType: leadType,
+                    idea: idea,
+                    currentChapter: 0,
+                    chapters: chapters
+                };
+
+                novels.unshift(completeNovel);
+                activeNovel = completeNovel;
+                currentChapter = 0;
+                saveNovels();
+                renderDashboard();
+                renderReader();
+                showView($("readerView"));
+
+                $("generationStatus").textContent = `All ${totalChapters} chapters generated successfully!`;
+                toast(`All ${totalChapters} chapters created!`);
+            } catch (error) {
+                console.error("Novel generation error:", error);
+                $("generationStatus").textContent = "Error: " + error.message;
+                toast("Failed: " + error.message);
+            } finally {
+                $("generateButton").disabled = false;
+            }
+        };
+
+        // Reader Controls
+        $("previousButton").onclick = function () {
+            if (currentChapter > 0) {
+                currentChapter--;
+                renderReader();
+                renderDashboard();
+            }
+        };
+
+        $("nextButton").onclick = async function () {
+            if (!activeNovel) return;
+
+            if (currentChapter < activeNovel.chapters.length - 1) {
+                currentChapter++;
+                renderReader();
+                renderDashboard();
+                return;
+            }
+
+            const nextNum = activeNovel.chapters.length + 1;
+            if (confirm(`You are at the end of the current chapters. Generate an extra Chapter ${nextNum}?`)) {
+                $("nextButton").disabled = true;
+                toast(`Generating extra Chapter ${nextNum}...`);
+
+                try {
+                    const token = window.currentUserToken || "";
+                    const res = await apiGenerateNextChapter(activeNovel.id, token);
+
+                    activeNovel.chapters.push({
+                        title: res.chapter.title || `Chapter ${res.chapterNumber}`,
+                        english: `<p>${res.chapter.textEnglish.replace(/\n\n/g, "</p><p>")}</p>`,
+                        hindi: `<p>${res.chapter.textHindi.replace(/\n\n/g, "</p><p>")}</p>`,
+                        summary: res.chapter.summary,
+                        dominantEmotion: res.chapter.dominantEmotion,
+                        timeSetting: res.chapter.timeSetting,
+                        note: "",
+                        bookmarked: false
+                    });
+
+                    currentChapter++;
+                    activeNovel.currentChapter = currentChapter;
+                    saveNovels();
+                    renderReader();
+                    renderDashboard();
+                    toast(`Chapter ${res.chapterNumber} ready!`);
+                } catch (err) {
+                    alert("Error generating next chapter: " + err.message);
+                } finally {
+                    $("nextButton").disabled = false;
+                }
+            }
+        };
+
+        $("languageSelect").onchange = renderReader;
+        $("fontSelect").onchange = (e) => {
+            document.documentElement.style.setProperty("--font-size", e.target.value);
+        };
+
+        $("speakButton").onclick = function () {
+            if (speech) {
+                speechSynthesis.cancel();
+                speech = null;
+                toast("Reading stopped");
+                return;
+            }
+            speech = new SpeechSynthesisUtterance($("article").innerText);
+            speech.lang = $("languageSelect").value === "hi" ? "hi-IN" : "en-IN";
+            speech.rate = 0.95;
+            speech.onend = () => { speech = null; };
+            speechSynthesis.speak(speech);
+        };
+
+        $("exportButton").onclick = function () {
+            if (!activeNovel) return;
+            const isHindi = $("languageSelect").value === "hi";
+            let output = `${activeNovel.title}\n\n`;
+            activeNovel.chapters.forEach((c, idx) => {
+                const temp = document.createElement("div");
+                temp.innerHTML = isHindi ? c.hindi : c.english;
+                output += `Chapter ${idx + 1}: ${c.title}\n\n${temp.innerText}\n\n------------------\n\n`;
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([output], { type: "text/plain" }));
+            link.download = `${activeNovel.title}.txt`;
+            link.click();
+        };
+
+        $("bookmarkButton").onclick = function () {
+            if (!activeNovel) return;
+            const ch = activeNovel.chapters[currentChapter];
+            ch.bookmarked = !ch.bookmarked;
+            saveNovels();
+            renderReader();
+            toast(ch.bookmarked ? "Chapter bookmarked" : "Bookmark removed");
+        };
+
+        $("saveNoteButton").onclick = function () {
+            if (!activeNovel) return;
+            activeNovel.chapters[currentChapter].note = $("noteInput").value;
+            saveNovels();
+            toast("Note saved");
+        };
+
+        $("assistantButton").onclick = function () {
+            const isHindi = $("languageSelect").value === "hi";
+            $("assistantAnswer").textContent = isHindi
+                ? "यह अध्याय कहानी के मुख्य पात्रों और रहस्य को आगे बढ़ाता है।"
+                : "This chapter advances the narrative stakes and character dynamics.";
+        };
+
+        // Navigations
+        $("dashboardButton").onclick = () => showView($("dashboardView"));
+        $("readerButton").onclick = () => {
+            if (!activeNovel) {
+                toast("Create a novel first");
+                return;
+            }
+            renderReader();
+            showView($("readerView"));
+        };
+        $("libraryButton").onclick = () => {
+            renderNovelCards();
+            showView($("libraryView"));
+        };
+        $("createButton").onclick = () => showView($("createView"));
+        $("newStoryButton").onclick = () => showView($("createView"));
+        $("openStoryButton").onclick = () => {
+            if (activeNovel) {
+                renderReader();
+                showView($("readerView"));
+            } else {
+                showView($("createView"));
+            }
+        };
+
+        // Profile Modal Handlers
+        function openProfileModal() {
+            const profile = getProfile();
+            if (profile) {
+                $("profileNameInput").value = profile.name;
+                $("profileGenreInput").value = profile.genre;
+                $("profileLanguageInput").value = profile.language;
+            }
+            $("profileModal").classList.add("show");
+        }
+
+        $("profileButton").onclick = openProfileModal;
+        $("profileButtonSide").onclick = openProfileModal;
+        $("closeProfileButton").onclick = () => $("profileModal").classList.remove("show");
+
+        $("saveProfileButton").onclick = () => {
+            const oldProfile = getProfile();
+            const profile = {
+                id: oldProfile && oldProfile.id ? oldProfile.id : createProfileId(),
+                name: $("profileNameInput").value.trim() || "Reader",
+                genre: $("profileGenreInput").value,
+                language: $("profileLanguageInput").value,
+                createdAt: oldProfile && oldProfile.createdAt ? oldProfile.createdAt : new Date().toISOString()
+            };
+            saveProfile(profile);
+            activeNovel = null;
+            currentChapter = 0;
+            loadNovels();
+            if (novels.length > 0) {
+                activeNovel = novels[0];
+                currentChapter = activeNovel.currentChapter || 0;
+            }
+            updateProfileDisplay();
+            renderDashboard();
+            if (activeNovel) renderReader();
+            $("profileModal").classList.remove("show");
+            toast("Profile saved");
+        };
+
+        $("newProfileButton").onclick = () => {
+            const profile = {
+                id: createProfileId(),
+                name: "New Reader",
+                genre: "Fantasy",
+                language: "en",
+                createdAt: new Date().toISOString()
+            };
+            saveProfile(profile);
+            novels = [];
+            activeNovel = null;
+            currentChapter = 0;
+            updateProfileDisplay();
+            renderDashboard();
+            $("profileModal").classList.remove("show");
+            toast("New private profile created");
+        };
+
+        // Theme Handlers
+        $("themeButton").onclick = () => {
+            const dark = document.body.classList.contains("dark");
+            const sepia = document.body.classList.contains("sepia");
+            document.body.classList.remove("dark", "sepia");
+            if (!dark && !sepia) {
+                document.body.classList.add("dark");
+                localStorage.setItem(THEME_KEY, "dark");
+                toast("Dark theme enabled");
+            } else if (dark) {
+                document.body.classList.add("sepia");
+                localStorage.setItem(THEME_KEY, "sepia");
+                toast("Sepia theme enabled");
+            } else {
+                localStorage.setItem(THEME_KEY, "light");
+                toast("Light theme enabled");
+            }
+        };
+
+        // Initialize
+        let profile = getProfile();
+        if (!profile) {
+            profile = {
+                id: createProfileId(),
+                name: "Reader",
+                genre: "Fantasy",
+                language: "en",
+                createdAt: new Date().toISOString()
+            };
+            saveProfile(profile);
+        }
+
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme === "dark") document.body.classList.add("dark");
+        if (savedTheme === "sepia") document.body.classList.add("sepia");
+
+        loadNovels();
+        updateProfileDisplay();
         renderDashboard();
-        toast(`Chapter ${res.chapterNumber} ready!`);
-      } catch (err) {
-        alert("Error generating next chapter: " + err.message);
-      } finally {
-        $("nextButton").disabled = false;
-      }
-    }
-  };
-
-  $("languageSelect").onchange = renderReader;
-  $("fontSelect").onchange = (e) => {
-    document.documentElement.style.setProperty("--font-size", e.target.value);
-  };
-
-  $("speakButton").onclick = function () {
-    if (speech) {
-      speechSynthesis.cancel();
-      speech = null;
-      toast("Reading stopped");
-      return;
-    }
-    speech = new SpeechSynthesisUtterance($("article").innerText);
-    speech.lang = $("languageSelect").value === "hi" ? "hi-IN" : "en-IN";
-    speech.rate = 0.95;
-    speech.onend = () => { speech = null; };
-    speechSynthesis.speak(speech);
-  };
-
-  $("exportButton").onclick = function () {
-    if (!activeNovel) return;
-    const isHindi = $("languageSelect").value === "hi";
-    let output = `${activeNovel.title}\n\n`;
-    activeNovel.chapters.forEach((c, idx) => {
-      const temp = document.createElement("div");
-      temp.innerHTML = isHindi ? c.hindi : c.english;
-      output += `Chapter ${idx + 1}: ${c.title}\n\n${temp.innerText}\n\n------------------\n\n`;
-    });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([output], { type: "text/plain" }));
-    link.download = `${activeNovel.title}.txt`;
-    link.click();
-  };
-
-  $("bookmarkButton").onclick = function () {
-    if (!activeNovel) return;
-    const ch = activeNovel.chapters[currentChapter];
-    ch.bookmarked = !ch.bookmarked;
-    saveNovels();
-    renderReader();
-    toast(ch.bookmarked ? "Chapter bookmarked" : "Bookmark removed");
-  };
-
-  $("saveNoteButton").onclick = function () {
-    if (!activeNovel) return;
-    activeNovel.chapters[currentChapter].note = $("noteInput").value;
-    saveNovels();
-    toast("Note saved");
-  };
-
-  $("assistantButton").onclick = function () {
-    const isHindi = $("languageSelect").value === "hi";
-    $("assistantAnswer").textContent = isHindi 
-      ? "यह अध्याय कहानी के मुख्य पात्रों और रहस्य को आगे बढ़ाता है।"
-      : "This chapter advances the narrative stakes and character dynamics.";
-  };
-
-  // Navigations
-  $("dashboardButton").onclick = () => showView($("dashboardView"));
-  $("readerButton").onclick = () => {
-    if (!activeNovel) {
-      toast("Create a novel first");
-      return;
-    }
-    renderReader();
-    showView($("readerView"));
-  };
-  $("libraryButton").onclick = () => {
-    renderNovelCards();
-    showView($("libraryView"));
-  };
-  $("createButton").onclick = () => showView($("createView"));
-  $("newStoryButton").onclick = () => showView($("createView"));
-  $("openStoryButton").onclick = () => {
-    if (activeNovel) {
-      renderReader();
-      showView($("readerView"));
-    } else {
-      showView($("createView"));
-    }
-  };
-
-  // Profile Modal Handlers
-  function openProfileModal() {
-    const profile = getProfile();
-    if (profile) {
-      $("profileNameInput").value = profile.name;
-      $("profileGenreInput").value = profile.genre;
-      $("profileLanguageInput").value = profile.language;
-    }
-    $("profileModal").classList.add("show");
-  }
-
-  $("profileButton").onclick = openProfileModal;
-  $("profileButtonSide").onclick = openProfileModal;
-  $("closeProfileButton").onclick = () => $("profileModal").classList.remove("show");
-
-  $("saveProfileButton").onclick = () => {
-    const oldProfile = getProfile();
-    const profile = {
-      id: oldProfile && oldProfile.id ? oldProfile.id : createProfileId(),
-      name: $("profileNameInput").value.trim() || "Reader",
-      genre: $("profileGenreInput").value,
-      language: $("profileLanguageInput").value,
-      createdAt: oldProfile && oldProfile.createdAt ? oldProfile.createdAt : new Date().toISOString()
-    };
-    saveProfile(profile);
-    activeNovel = null;
-    currentChapter = 0;
-    loadNovels();
-    if (novels.length > 0) {
-      activeNovel = novels[0];
-      currentChapter = activeNovel.currentChapter || 0;
-    }
-    updateProfileDisplay();
-    renderDashboard();
-    if (activeNovel) renderReader();
-    $("profileModal").classList.remove("show");
-    toast("Profile saved");
-  };
-
-  $("newProfileButton").onclick = () => {
-    const profile = {
-      id: createProfileId(),
-      name: "New Reader",
-      genre: "Fantasy",
-      language: "en",
-      createdAt: new Date().toISOString()
-    };
-    saveProfile(profile);
-    novels = [];
-    activeNovel = null;
-    currentChapter = 0;
-    updateProfileDisplay();
-    renderDashboard();
-    $("profileModal").classList.remove("show");
-    toast("New private profile created");
-  };
-
-  // Theme Handlers
-  $("themeButton").onclick = () => {
-    const dark = document.body.classList.contains("dark");
-    const sepia = document.body.classList.contains("sepia");
-    document.body.classList.remove("dark", "sepia");
-    if (!dark && !sepia) {
-      document.body.classList.add("dark");
-      localStorage.setItem(THEME_KEY, "dark");
-      toast("Dark theme enabled");
-    } else if (dark) {
-      document.body.classList.add("sepia");
-      localStorage.setItem(THEME_KEY, "sepia");
-      toast("Sepia theme enabled");
-    } else {
-      localStorage.setItem(THEME_KEY, "light");
-      toast("Light theme enabled");
-    }
-  };
-
-  // Initialize
-  let profile = getProfile();
-  if (!profile) {
-    profile = {
-      id: createProfileId(),
-      name: "Reader",
-      genre: "Fantasy",
-      language: "en",
-      createdAt: new Date().toISOString()
-    };
-    saveProfile(profile);
-  }
-
-  const savedTheme = localStorage.getItem(THEME_KEY);
-  if (savedTheme === "dark") document.body.classList.add("dark");
-  if (savedTheme === "sepia") document.body.classList.add("sepia");
-
-  loadNovels();
-  updateProfileDisplay();
-  renderDashboard();
-  if (novels.length > 0) {
-    activeNovel = novels[0];
-    currentChapter = activeNovel.currentChapter || 0;
-    renderReader();
-  }
-</script>
+        if (novels.length > 0) {
+            activeNovel = novels[0];
+            currentChapter = activeNovel.currentChapter || 0;
+            renderReader();
+        }
+    </script>
 </body>
+
 </html>
