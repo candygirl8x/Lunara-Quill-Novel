@@ -1097,6 +1097,7 @@
         <!-- Reader View -->
 
         <section class="view" id="readerView">
+      <button class="back-nav-btn" id="readerBackToDashBtn">← Back to Dashboard</button>
 
             <div class="section-title">
 
@@ -1247,7 +1248,14 @@
 
         </section>
 
-    </main>
+        <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <button class="mobile-nav-item active" id="mDashBtn">🏠 Dashboard</button>
+      <button class="mobile-nav-item" id="mCreateBtn">✨ Create</button>
+      <button class="mobile-nav-item" id="mReaderBtn">📖 Reader</button>
+      <button class="mobile-nav-item" id="mLibraryBtn">📚 Library</button>
+    </nav>
+</main>
 
     <!-- Profile Modal -->
 
@@ -1485,30 +1493,45 @@
     localStorage.setItem(privateKey, JSON.stringify(novels));
   }
 
-  // Safe view switcher
-  function showView(targetId) {
-    const views = ["dashboardView", "createView", "readerView", "libraryView"];
-    views.forEach((id) => {
-      const el = $(id);
-      if (el) {
-        el.style.display = (id === targetId || el === targetId) ? "block" : "none";
-      }
-    });
-
-    // Update active nav button in the sidebar
-    const navButtons = {
-      dashboardView: "dashboardButton",
-      createView: "createButton",
-      readerView: "readerButton",
-      libraryView: "libraryButton"
+  // Mobile + Desktop View Switcher with Browser History Support
+  function showView(targetId, pushHistory = true) {
+    const viewMap = {
+      dashboardView: { desktop: "dashboardButton", mobile: "mDashBtn" },
+      createView: { desktop: "createButton", mobile: "mCreateBtn" },
+      readerView: { desktop: "readerButton", mobile: "mReaderBtn" },
+      libraryView: { desktop: "libraryButton", mobile: "mLibraryBtn" }
     };
 
-    document.querySelectorAll(".nav").forEach((b) => b.classList.remove("active"));
-    const activeBtn = $(navButtons[targetId]);
-    if (activeBtn) activeBtn.classList.add("active");
+    ["dashboardView", "createView", "readerView", "libraryView"].forEach((id) => {
+      const el = $(id);
+      if (el) el.style.display = (id === targetId) ? "block" : "none";
+    });
+
+    // Update active state across desktop sidebar and mobile bottom bar
+    document.querySelectorAll(".nav, .mobile-nav-item").forEach((btn) => btn.classList.remove("active"));
+    if (viewMap[targetId]) {
+      const dBtn = $(viewMap[targetId].desktop);
+      const mBtn = $(viewMap[targetId].mobile);
+      if (dBtn) dBtn.classList.add("active");
+      if (mBtn) mBtn.classList.add("active");
+    }
+
+    // Push browser state so Phone Back Button navigates inside the app
+    if (pushHistory && window.history && window.history.pushState) {
+      history.pushState({ view: targetId }, "", `#${targetId.replace("View", "")}`);
+    }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  // Handle Phone Native Back Button
+  window.addEventListener("popstate", (e) => {
+    if (e.state && e.state.view) {
+      showView(e.state.view, false);
+    } else {
+      showView("dashboardView", false);
+    }
+  });
 
   function updateProfileDisplay() {
     const profile = getProfile();
@@ -1697,7 +1720,6 @@
       try {
         const token = window.currentUserToken || "";
 
-        // 1. Initialize outline
         const initRes = await apiInitNovel({
           title,
           genre,
@@ -1711,7 +1733,6 @@
         const backendNovelId = initRes.novelId;
         const chapters = [];
 
-        // 2. Generate all chapters sequentially
         for (let i = 1; i <= totalChapters; i++) {
           if (statusEl) statusEl.textContent = `Writing Chapter ${i} of ${totalChapters}... Please wait.`;
           toast(`Writing Chapter ${i} of ${totalChapters}...`);
@@ -1825,16 +1846,14 @@
     };
   }
 
-  // Setup Back to Dashboard button
-  document.addEventListener("DOMContentLoaded", () => {
-    const backBtn = $("backToDashBtn");
-    if (backBtn) {
-      backBtn.onclick = () => {
-        renderDashboard();
-        showView("dashboardView");
-      };
-    }
-  });
+  // Back to Dashboard button in Reader View
+  const readerBackBtn = $("readerBackToDashBtn");
+  if (readerBackBtn) {
+    readerBackBtn.onclick = () => {
+      renderDashboard();
+      showView("dashboardView");
+    };
+  }
 
   if ($("languageSelect")) $("languageSelect").onchange = renderReader;
   if ($("fontSelect")) {
@@ -1913,7 +1932,7 @@
     };
   }
 
-  // Navigation handlers
+  // Desktop Sidebar Navigation
   if ($("dashboardButton")) $("dashboardButton").onclick = () => showView("dashboardView");
   if ($("readerButton")) $("readerButton").onclick = () => {
     if (!activeNovel) {
@@ -1936,6 +1955,22 @@
     } else {
       showView("createView");
     }
+  };
+
+  // Mobile Bottom Navigation Bar Events
+  if ($("mDashBtn")) $("mDashBtn").onclick = () => showView("dashboardView");
+  if ($("mCreateBtn")) $("mCreateBtn").onclick = () => showView("createView");
+  if ($("mReaderBtn")) $("mReaderBtn").onclick = () => {
+    if (!activeNovel) {
+      toast("Create a novel first");
+      return;
+    }
+    renderReader();
+    showView("readerView");
+  };
+  if ($("mLibraryBtn")) $("mLibraryBtn").onclick = () => {
+    renderNovelCards();
+    showView("libraryView");
   };
 
   // Profile Modal Handlers
@@ -2046,6 +2081,11 @@
     activeNovel = novels[0];
     currentChapter = activeNovel.currentChapter || 0;
     renderReader();
+  }
+
+  // Initial history state
+  if (window.history && window.history.replaceState) {
+    history.replaceState({ view: "dashboardView" }, "", "#dashboard");
   }
 </script>
 </body>
